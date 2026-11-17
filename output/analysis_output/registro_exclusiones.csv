@@ -1,0 +1,12 @@
+nivel,industria,criterio,cantidad,detalle
+archivo_ancho,todas,filas_duplicadas_exactas_1994m1_2024m6,3131,"3.131 pares (industry, vintage) duplicados exactamente en monthly_gdp_vintages*.csv; deduplicados sin pérdida de información."
+observacion_larga,todas,target_date_mayor_vintage_date,0,Verificación de ausencia de fuga de información futura.
+objetivo_gdp_H11,gdp,excluido_cambio_anio_base,24,"Horizonte H=11 meses. Ejemplos: 1999m5, 1999m6, 1999m7, 1999m8, 1999m9 ..."
+objetivo_gdp_H11,gdp,excluido_sin_primera_publicacion,21,"Horizonte H=11 meses. Ejemplos: 1992m1, 1992m2, 1992m3, 1992m4, 1992m5 ..."
+objetivo_gdp_H11,gdp,excluido_horizonte_incompleto,11,"Horizonte H=11 meses. Ejemplos: 2024m12, 2025m1, 2025m2, 2025m3, 2025m4 ..."
+objetivo_gdp_H12,gdp,excluido_horizonte_incompleto,30,"Horizonte H=12 meses. Ejemplos: 2005m12, 2015m9, 2015m10, 2015m11, 2015m12 ..."
+objetivo_gdp_H12,gdp,excluido_cambio_anio_base,24,"Horizonte H=12 meses. Ejemplos: 1999m5, 1999m6, 1999m7, 1999m8, 1999m9 ..."
+objetivo_gdp_H12,gdp,excluido_sin_primera_publicacion,21,"Horizonte H=12 meses. Ejemplos: 1992m1, 1992m2, 1992m3, 1992m4, 1992m5 ..."
+cobertura_sectorial,electricity,vintages_ausentes_respecto_a_gdp,112,"Inicio vintage 2003-05; faltan p. ej. 1994m1, 1994m2, 1994m3, 1994m4, 1994m5, 1994m6"
+cobertura_sectorial,mining,vintages_ausentes_respecto_a_gdp,9,"Inicio vintage 1994-01; faltan p. ej. 2018m8, 2018m9, 2018m10, 2018m11, 2018m12, 2019m1"
+cobertura_sectorial,services,vintages_ausentes_respecto_a_gdp,42,"Inicio vintage 1997-07; faltan p. ej. 1994m1, 1994m2, 1994m3, 1994m4, 1994m5, 1994m6"

@@ -1,0 +1,19 @@
+archivo,variable,tipo,unidad_formato,definicion
+vintages_long.csv,industry,string,código sectorial,"Sector económico (agriculture, commerce, construction, electricity, fishing, gdp, manufacturing, mining, services)"
+vintages_long.csv,vintage,string,YYYYmM,Identificador mensual de publicación (Nota Semanal BCRP)
+vintages_long.csv,vintage_date,date,YYYY-MM-DD,Primer día del mes del vintage de publicación
+vintages_long.csv,target_period,string,YYYYmM,Período económico de referencia
+vintages_long.csv,target_date,date,YYYY-MM-DD,Primer día del mes del período económico objetivo
+vintages_long.csv,value,float,puntos porcentuales,Variación porcentual interanual del PBI/sector en el vintage dado
+vintages_long.csv,is_base_year_sentinel,bool,0/1,True si la celda está marcada con -999999.0 en monthly_gdp_vintages_adjusted.csv
+vintages_long.csv,benchmark_revision,int,0/1,Indicador de revisión simultánea Tabla 1 y Tabla 2 en wr_metadata.csv
+vintages_long.csv,base_year,int,año,"Año base asignado al vintage en wr_metadata.csv (1990, 1994, 2007)"
+muestra_objetivo_gdp.csv,target_date,date,YYYY-MM-DD,Período objetivo mensual del PBI total
+muestra_objetivo_gdp.csv,v0_date,date,YYYY-MM-DD,Primer vintage disponible para el período objetivo
+muestra_objetivo_gdp.csv,lag0_months,int,meses,Diferencia calendario v0_date - target_date (rezago inicial observado)
+muestra_objetivo_gdp.csv,y0,float,puntos porcentuales,Primera tasa publicada disponible en el repositorio
+muestra_objetivo_gdp.csv,y_H11 / y_H12,float,puntos porcentuales,Tasa publicada en el primer vintage >= v0_date + H meses
+muestra_objetivo_gdp.csv,Y_H11 / Y_H12,float,puntos porcentuales,Revisión a horizonte fijo: y_H - y0 (Ecuación 3)
+muestra_objetivo_gdp.csv,crosses_base_year_H11 / H12,bool,0/1,True si y0 o yH están afectados por cambio de año base (-999999.0)
+fechas_publicacion.csv,pub_lag_months,int,meses,Diferencia entre vintage_date y el período objetivo más reciente publicado en ese vintage
+fechas_publicacion.csv,exact_day_available,bool,0/1,"False: el archivo wr_metadata.csv solo registra (year, wr, month) sin día calendario exacto"

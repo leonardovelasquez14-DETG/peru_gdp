@@ -1,0 +1,25 @@
+# Python bytecode / entornos
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.env
+.env.*
+
+# Archivos intermedios de compilacion LaTeX (se conserva main.pdf y fuentes)
+main_tex/*.aux
+main_tex/*.bbl
+main_tex/*.bcf
+main_tex/*.blg
+main_tex/*.log
+main_tex/*.out
+main_tex/*.run.xml
+main_tex/*.toc
+main_tex/*.synctex.gz
+main_tex/*.fdb_latexmk
+main_tex/*.fls
+
+# Sistema operativo
+.DS_Store
+Thumbs.db

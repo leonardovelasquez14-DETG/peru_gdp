@@ -1,0 +1,54 @@
+cff-version: 1.2.0
+message: "If you use this software or dataset, please cite it as below."
+type: software
+title: "Peru GDP Real-Time Dataset Construction Pipeline"
+version: "1.0.0"
+date-released: "2024-12-28"
+authors:
+  - family-names: "Cruz"
+    given-names: "Jason Josue"
+    email: "jj.cruza@up.edu.pe"
+    affiliation: "Universidad del Pacífico - CIUP"
+    orcid: "https://orcid.org/0009-0001-4640-5500"
+  - family-names: "Winkelried"
+    given-names: "Diego"
+    email: "winkelried_dm@up.edu.pe"
+    affiliation: "School of Economics and Finance, Universidad del Pacífico"
+    orcid: "https://orcid.org/0000-0002-9388-2617"
+  - family-names: "Torres"
+    given-names: "Javier"
+    email: "J.TorresGomez@up.edu.pe"
+    affiliation: "School of Economics and Finance, Universidad del Pacífico"
+    orcid: "https://orcid.org/0000-0001-6850-1395"
+repository-code: "https://github.com/JasonCruz18/peru_gdp_revisions"
+url: "https://github.com/JasonCruz18/peru_gdp_revisions"
+abstract: >-
+  Production-ready pipeline for constructing real-time datasets (RTD) of
+  Peruvian GDP revisions from BCRP Weekly Reports. Features automated web
+  scraping, PDF processing, comprehensive data cleaning (70+ functions),
+  and transformation to multiple dataset formats. Includes interactive
+  dashboard for visualization and exploration.
+keywords:
+  - GDP revisions
+  - Real-time data
+  - Peru
+  - Economic statistics
+  - Data pipeline
+  - Nowcasting
+license: MIT
+preferred-citation:
+  type: article
+  title: "Peru GDP Real-Time Dataset (1994-2025): Tracking Three Decades of Revisions"
+  authors:
+    - family-names: "Cruz"
+      given-names: "Jason Josue"
+      orcid: "https://orcid.org/0009-0001-4640-5500"
+    - family-names: "Winkelried"
+      given-names: "Diego"
+      orcid: "https://orcid.org/0000-0002-9388-2617"
+    - family-names: "Torres"
+      given-names: "Javier"
+      orcid: "https://orcid.org/0000-0001-6850-1395"
+  year: 2025
+  journal: "Data in Brief"
+  institution: "Universidad del Pacífico - CIUP"

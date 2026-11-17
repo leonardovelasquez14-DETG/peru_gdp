@@ -1,0 +1,33 @@
+# Peru GDP Real-Time Dataset - Runtime Environment
+# =================================================
+# This file is aligned with environment.yml for pip-based replication.
+# Development-only tools remain in requirements-dev.txt.
+
+# Core data processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Configuration
+pyyaml>=6.0
+
+# HTTP and web scraping
+requests>=2.32.5
+urllib3>=2.6.3
+selenium>=4.39.0
+webdriver-manager>=4.0.0
+
+# PDF processing
+PyMuPDF>=1.26.7
+pypdf>=6.10.2
+tabula-py>=2.9.0
+# Note: tabula-py requires Java Runtime Environment (JRE) to be installed separately.
+
+# Utilities
+roman>=4.1
+tqdm>=4.66.5
+colorama>=0.4.6
+
+# Notebook support
+ipywidgets>=8.1.8
+jupyter>=1.0.0
+notebook>=7.5.5

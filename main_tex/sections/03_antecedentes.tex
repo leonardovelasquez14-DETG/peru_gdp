@@ -1,0 +1,37 @@
+% ============================================================================
+\section{Antecedentes empíricos}
+
+La revisión de antecedentes se organizó alrededor de tres líneas: datos macroeconómicos en tiempo real y revisiones; modelos de nowcasting y pronóstico; y computación cuántica aplicada a series temporales. Se distinguieron los estudios que analizan directamente revisiones estadísticas de aquellos que estudian predicción económica o arquitecturas computacionales relacionadas. Esta distinción evita atribuir a un antecedente resultados que no examinó.
+
+\subsection{Antecedentes internacionales}
+
+\paragraph{Aruoba, Diebold y Scotti (2009).}
+Desarrollaron un indicador de actividad económica de alta frecuencia para Estados Unidos mediante un modelo de espacio de estados que integró variables observadas con distinta frecuencia y oportunidad de publicación. Su metodología permitió actualizar la evaluación de la actividad conforme llegaba nueva información. El estudio mostró la utilidad de los modelos dinámicos para sintetizar señales macroeconómicas incompletas. Su relación con esta investigación radicó en el tratamiento de información publicada en distintos momentos; no obstante, su objetivo principal fue medir actividad corriente y no predecir revisiones de una cifra de PBI ya publicada \parencite{aruoba2009}.
+
+\paragraph{Giannone, Reichlin y Small (2008).}
+Propusieron un marco de nowcasting basado en factores dinámicos que incorporó la llegada escalonada de indicadores económicos. El procedimiento actualizó las estimaciones conforme se publicaban nuevos datos y permitió cuantificar la contribución de cada noticia estadística. El antecedente aportó una referencia metodológica para modelar conjuntos de información incompletos y de frecuencia mixta. La presente investigación retomó la importancia de respetar la fecha de disponibilidad de los datos, aunque su variable objetivo fue la revisión posterior de la primera estimación del PBI \parencite{giannone2008}.
+
+\paragraph{Croushore (2011).}
+Revisó la literatura sobre datos macroeconómicos en tiempo real y explicó por qué las revisiones estadísticas afectan la evaluación de políticas y la investigación empírica. Su trabajo destacó la necesidad de distinguir entre datos disponibles en tiempo real y series revisadas posteriormente. Este antecedente fundamentó el requisito de reconstruir vintages y evitar evaluaciones retrospectivas con información que no habría estado disponible en la fecha de pronóstico \parencite{croushore2011}.
+
+\paragraph{Stark (2013).}
+Analizó las revisiones de las estadísticas del producto de Estados Unidos y sus implicancias para la evaluación de la actividad económica. Su trabajo mostró que la magnitud y el comportamiento de las revisiones deben estudiarse considerando el calendario de publicación y la versión de los datos. Constituyó un antecedente directo para la caracterización de errores de primera publicación y para la evaluación de modelos que buscan anticipar revisiones posteriores \parencite{stark2013}. La referencia bibliográfica exacta y el documento específico deberán cotejarse con la versión consultada antes de la entrega final.
+
+\paragraph{Bánbura, Giannone y Reichlin (2011).}
+Presentaron una revisión de los métodos de nowcasting basados en factores dinámicos y datos de frecuencia mixta. Describieron cómo la estructura de publicación escalonada puede incorporarse en modelos de espacio de estados y cómo las noticias macroeconómicas actualizan las estimaciones. El antecedente aportó criterios para construir un benchmark econométrico y para diferenciar la tarea de nowcasting de la predicción de revisiones estadísticas \parencite{banbura2011}.
+
+\subsection{Antecedentes nacionales y brecha de investigación}
+
+Para el caso peruano, la investigación no atribuyó resultados empíricos específicos a documentos institucionales cuya identificación bibliográfica o disponibilidad no hubiera sido comprobada. La revisión definitiva deberá incorporar, como mínimo, documentos técnicos del Instituto Nacional de Estadística e Informática (INEI) sobre cuentas nacionales, metodología de cálculo del PBI, cambios de año base y calendario de publicaciones; así como documentos del Banco Central de Reserva del Perú (BCRP) relacionados con indicadores de actividad, nowcasting y evaluación coyuntural. Cada antecedente nacional deberá describir explícitamente objetivo, datos, metodología, resultados y limitaciones, a partir del documento original.
+
+La brecha que se pretende abordar no es la ausencia general de modelos de predicción macroeconómica en el Perú. Es más específica: la falta de evidencia empírica reproducible que compare, sobre una secuencia verificable de vintages del PBI peruano, la capacidad de modelos clásicos y QRC para anticipar revisiones posteriores, manteniendo constante el conjunto de información disponible. Esta afirmación se mantendrá como brecha provisional hasta completar una búsqueda sistemática en repositorios académicos, documentos de trabajo y bases bibliográficas.
+
+\subsection{Antecedentes sobre computación cuántica y aprendizaje automático}
+
+La literatura de aprendizaje automático cuántico ha estudiado la capacidad de circuitos parametrizados y reservorios cuánticos para construir representaciones no lineales. Sin embargo, la expresividad de una arquitectura no garantiza ventaja predictiva ni computacional. Cerezo et al. (2021) revisaron problemas de optimización de circuitos variacionales, incluidos los fenómenos de gradientes pequeños y las dificultades de entrenamiento en determinadas arquitecturas \parencite{cerezo2021}. Schuld y colaboradores discutieron la necesidad de evaluar cuidadosamente la relación entre representaciones cuánticas y modelos clásicos, evitando inferir ventaja computacional a partir de una mejora aislada en precisión \parencite{schuld2021}.
+
+En computación de reservorio, la dinámica del sistema transforma una secuencia de entradas en estados internos, mientras que una capa de lectura relativamente sencilla aprende a mapear esos estados hacia la variable objetivo. La hipótesis de utilidad para este problema se basa en que la secuencia de revisiones podría contener dependencias temporales no lineales de memoria finita. Sin embargo, esta es una conjetura que debe contrastarse, no una propiedad garantizada de los sistemas cuánticos.
+
+\subsection{Síntesis de antecedentes}
+
+Los antecedentes permiten extraer cuatro implicancias. Primero, el análisis debe utilizar datos en tiempo real y no una serie revisada retrospectivamente. Segundo, los modelos econométricos de factores y las reglas de corrección estadística constituyen benchmarks relevantes. Tercero, la predicción de revisiones debe mantenerse separada del nowcasting de actividad no publicada. Cuarto, la comparación QRC-clásica debe ser simétrica y no debe confundirse una mejora predictiva con una ventaja cuántica demostrada.

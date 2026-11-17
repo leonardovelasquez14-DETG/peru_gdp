@@ -1,0 +1,136 @@
+% ============================================================================
+\appendix
+
+\section{Protocolo de auditoría de datos}
+\label{app:auditoria}
+
+La auditoría deberá producir los siguientes archivos: (i)~inventario de fuentes; (ii)~diccionario de variables; (iii)~matriz de vintages; (iv)~tabla de fechas de publicación; (v)~registro de observaciones excluidas; y (vi)~reporte de cambios metodológicos. Cada archivo tendrá identificador de versión y checksum. El repositorio de trabajo no sustituirá a la fuente original.
+
+\textbf{Estado de avance (Etapa~1 completada).} Se ejecutó el script reproducible \archivo{scripts/etapa1_auditoria_vintages.py} sobre los archivos originales (conservados sin modificaciones) de \archivo{peru_gdp_rtd_output} y \archivo{peruvian_gdp_revisions-main}. El script realiza las siguientes operaciones:
+\begin{enumerate}
+	\item genera el inventario completo de fuentes con tamaños, conteos y hashes SHA-256 (\archivo{inventario_fuentes.csv}) junto con el diccionario de variables (\archivo{diccionario_variables.csv});
+	\item verifica que los duplicados por \texttt{(industry, vintage)} en los CSV anchos son copias exactas (3\,131 pares entre 1994m1 y 2024m6) y los deduplica sin pérdida de información;
+	\item transforma de ancho a largo (\archivo{vintages_long.csv}), parsea \texttt{YYYYmM}, descarta cualquier celda con \archivo{target_date > vintage_date} (0 fugas detectadas) e integra las banderas de año base de \archivo{monthly_gdp_vintages_adjusted.csv};
+	\item construye la matriz de vintages del PBI (\archivo{triangulo_gdp.csv}), la tabla de fechas y retraso de publicación (\archivo{fechas_publicacion.csv} y \archivo{retraso_publicacion_gdp.csv});
+	\item construye la muestra objetivo a horizonte fijo \(Y_t^{(H)} = y_t^{(v_H)} - y_t^{(v_0)}\) (\archivo{muestra_objetivo_gdp.csv} y \archivo{resumen_horizontes_gdp.csv});
+	\item documenta exclusiones, brechas sectoriales, cambios metodológicos y anomalías de fuente (\archivo{registro_exclusiones.csv}, \archivo{cobertura_sectorial.csv}, \archivo{reporte_cambios_metodologicos.csv}), generando el manifiesto \archivo{checksums_sha256.csv} y las figuras diagnósticas en \archivo{output/analysis_output/}.
+\end{enumerate}
+
+Adicionalmente, la auditoría verificó los siguientes hallazgos reales en los archivos del repositorio (descartando incidencias obsoletas sobre filas truncadas o codificación corrupta que no están presentes en las copias actuales):
+\begin{itemize}
+	\item los cuatro archivos \archivo{monthly_gdp_vintages*.csv} presentan 3\,131 pares \texttt{(industry, vintage)} duplicados exactamente en 1994m1--2024m6 (todos deduplicados con 0 discrepancias de valor) y 0 filas vacías o truncadas;
+	\item el archivo \archivo{monthly_gdp_vintages_benchmark.csv} contiene un indicador binario (\texttt{0.0}/\texttt{1.0}) de actualización simultánea de la Tabla~1 y Tabla~2 en las Notas Semanales (91 de 384 vintages de PBI), por lo que no equivale a los cambios de año base; el indicador de ruptura metodológica real debe tomarse del centinela \(-999999{,}0\) de \archivo{monthly_gdp_vintages_adjusted.csv} (2000m7 y 2014m3);
+	\item el archivo \archivo{metadata/wr_metadata.csv} es ASCII válido (534 filas brutas, 150 repetidas que se reducen a 384 meses únicos), pero solo registra \texttt{(year, wr, month)} sin día calendario exacto, por lo que la evaluación se clasifica como pseudo-tiempo-real mensual;
+	\item se detectaron tres anomalías puntuales de fuente en los archivos históricos pre-2013 (\texttt{2008m7} con celda \archivo{tp_2007m11} ausente por el texto \texttt{"8 6"} en el CSV crudo, y saltos reversibles de un solo mes en \archivo{1999m2/tp_1998m11} y \archivo{2004m5/tp_2004m1}), además de nueve vintages faltantes en \texttt{mining} (\texttt{2018m8}--\texttt{2019m4}) y el inicio tardío de \texttt{electricity} en \texttt{2003m5}.
+\end{itemize}
+
+\section{Reglas de construcción de la variable objetivo}
+\label{app:objetivo}
+
+Para cada período \(t\), se identificó la primera publicación disponible \(v_0(t)\) con rezago válido (\(\text{lag}_0 \leq 3\) meses, excluyendo 1992m1--1993m9) y la primera publicación posterior que cumple el horizonte calendario \(H\), denominada \(v_H(t)\). Se calculó \(Y_t^{(H)} = y_t^{(v_H(t))} - y_t^{(v_0(t))}\) según la Ecuación~\ref{eq:target}, separando explícitamente los 24 períodos que cruzan los cambios de año base de 2000m7 y 2014m3.
+
+\textbf{Estado de implementación.} La versión inicial del análisis descriptivo calculaba la revisión de manera inversa (\texttt{first} menos \texttt{last}) a horizonte variable. Dicha limitación quedó corregida en \archivo{scripts/etapa1_auditoria_vintages.py}: el archivo \archivo{muestra_objetivo_gdp.csv} implementa explícitamente la Ecuación~\ref{eq:target} para horizontes \(H \in \{3, 6, 9, 10, 11, 12, 18, 24\}\). Dado que \(H=12\) pierde 18 observaciones internas por la longitud de las ventanas móviles del BCRP (incluyendo los meses de diciembre de 2018--2023), se documenta \(H=11\) como horizonte anual continuo principal (350 observaciones limpias, 0 huecos internos) y \(H=12, 6, 3\) como análisis de sensibilidad en la Tabla~\ref{tab:descriptivos_revision}.
+
+\section{Diseño de validación temporal}
+\label{app:validacion}
+
+En cada origen de pronóstico se formará una muestra de entrenamiento compuesta únicamente por observaciones cuyo objetivo ya se encuentre disponible. Se realizará validación interna temporal para seleccionar hiperparámetros. La muestra final permanecerá intacta hasta la evaluación. Se registrarán las fechas de corte, los índices de entrenamiento y evaluación, las transformaciones estimadas y las predicciones.
+
+\section{Especificación computacional de QRC}
+\label{app:qrc}
+
+La implementación deberá documentar:
+\begin{enumerate}
+	\item backend de simulación o hardware;
+	\item número de qubits y conectividad;
+	\item codificación de las entradas;
+	\item operadores de evolución y profundidad;
+	\item observables medidos;
+	\item número de shots y tratamiento del ruido;
+	\item regularización de la capa de lectura;
+	\item semillas aleatorias y versiones de librerías;
+	\item tiempo de entrenamiento e inferencia.
+\end{enumerate}
+Se comenzará con una arquitectura pequeña. La ampliación de qubits o profundidad requerirá justificar que la muestra y el presupuesto computacional lo permiten.
+
+\section{Control clásico de reservorio}
+\label{app:esn}
+
+El ESN utilizará una matriz recurrente aleatoria con radio espectral controlado, una matriz de entrada y una capa de lectura regularizada. Los hiperparámetros incluirán radio espectral, escala de entrada, fuga, conectividad y regularización. La selección se realizará con validación temporal interna. Se informará el rango de búsqueda y el número de configuraciones evaluadas.
+
+\section{Experimento sintético y propagación de incertidumbre}
+\label{app:sintetico}
+
+Los parámetros del proceso generador se estimarán a partir de las revisiones observadas. Se obtendrán distribuciones bootstrap por bloques para preservar dependencia temporal. En cada réplica se extraerá un vector de parámetros y se generarán series sintéticas bajo escenarios previamente definidos. Se informará la cantidad de réplicas, el error Monte Carlo y la sensibilidad a la especificación del proceso generador.
+
+No se seleccionarán escenarios después de observar qué arquitectura obtiene el mejor resultado. El grid y las semillas se fijarán antes de la ejecución. Los resultados sintéticos se interpretarán como evidencia condicional al proceso generador, no como prueba directa de desempeño en la economía real.
+
+\section{Inferencia predictiva}
+\label{app:inferencia}
+
+La diferencia de pérdidas entre dos modelos se definirá como \(d_t=L(e_{A,t})-L(e_{B,t})\). La hipótesis de igualdad de precisión se evaluará con procedimientos apropiados a la dependencia temporal y al posible anidamiento. Se reportarán estadístico, p-valor, intervalo de confianza y tamaño de efecto. Se utilizará bootstrap de bloques como análisis de robustez. La corrección por comparaciones múltiples se aplicará únicamente a la familia de contrastes definida ex ante.
+
+\section{Análisis de potencia}
+\label{app:potencia}
+
+El análisis de potencia se realizará mediante simulación basada en la varianza y autocorrelación observadas de las diferencias de pérdidas. Se estimará el efecto mínimo detectable para el tamaño de muestra efectivo. Si la potencia fuera insuficiente, se informará que los datos no permiten discriminar con precisión mejoras pequeñas. No se aumentará artificialmente la muestra mediante réplicas bootstrap para presentarlas como observaciones independientes.
+
+\section{Evaluación económica exploratoria}
+\label{app:voi}
+
+El análisis económico utilizará una regla de decisión explícita y parámetros sometidos a sensibilidad. Las estimaciones de inflación, brecha del producto y demás variables se construirán respetando la información disponible en cada fecha. Se evitará el uso de filtros bilaterales o revisiones futuras. La pérdida se interpretará como un indicador condicionado al modelo y no como beneficio monetario directo. Cualquier monetización requerirá costos observables y una unidad económica coherente.
+
+\section{Plan de reproducibilidad}
+\label{app:repro}
+
+El proyecto conservará:
+\begin{itemize}
+	\item archivos originales y metadatos;
+	\item scripts de descarga, limpieza y construcción de vintages;
+	\item archivos de configuración de cada modelo;
+	\item semillas aleatorias y versiones de dependencias;
+	\item índices temporales de cada fold;
+	\item predicciones fuera de muestra y métricas;
+	\item bitácora de exclusiones y decisiones analíticas.
+\end{itemize}
+La publicación de datos derivados respetará las licencias y condiciones de uso de las fuentes originales.
+
+\section{Cronograma referencial}
+\label{app:cronograma}
+
+\begin{table}[htbp]
+	\centering
+	\caption{Cronograma de ejecución propuesto}
+	\small
+	\renewcommand{\arraystretch}{1.15}
+	\begin{tabular}{@{}>{\raggedright\arraybackslash}p{5.2cm}cccc@{}}
+		\toprule
+		Actividad & Mes 1 & Mes 2 & Mes 3 & Mes 4\\
+		\midrule
+		Auditoría de fuentes y vintages & X & & &\\
+		Caracterización econométrica & X & X & &\\
+		Benchmarks clásicos & & X & X &\\
+		Implementación y control QRC/ESN & & X & X &\\
+		Experimento sintético & & & X &\\
+		Inferencia, robustez y discusión & & & X & X\\
+		Redacción final y reproducibilidad & & & & X\\
+		\bottomrule
+	\end{tabular}
+	\fuente{elaboración propia.}
+\end{table}
+
+\section{Lista de verificación antes de la estimación}
+\label{app:checklist}
+
+\begin{enumerate}
+	\item ¿Se verificó la identidad, versión y licencia de la base?
+	\item ¿Se identificaron las fechas reales de publicación?
+	\item ¿Se reconstruyó qué información estaba disponible en cada origen?
+	\item ¿Se definió el horizonte objetivo antes de estimar?
+	\item ¿Se separaron revisiones ordinarias y cambios metodológicos?
+	\item ¿Se fijó el benchmark clásico principal?
+	\item ¿Se congeló el tramo final de evaluación?
+	\item ¿Se documentó el presupuesto de tuning para todos los modelos?
+	\item ¿Se verificó que ninguna transformación utilizó información futura?
+	\item ¿Se registraron las semillas, versiones y costos computacionales?
+\end{enumerate}

@@ -1,0 +1,124 @@
+% ============================================================================
+\section{Marco teórico, conceptual y legal}
+
+\subsection{Datos macroeconómicos en tiempo real}
+
+Sea \(y_t^{(v)}\) la estimación publicada para el período económico \(t\), observada en el vintage \(v\). El conjunto de información disponible en la fecha de publicación \(v\) se denota por \(\mathcal{I}_v\). Una evaluación en tiempo real exige que toda predicción para esa fecha sea función exclusiva de \(\mathcal{I}_v\). El uso de versiones posteriores de la serie para construir predictores o seleccionar modelos generaría sesgo por anticipación.
+
+\subsection{Revisiones estadísticas}
+
+La revisión entre dos vintages se define como:
+\begin{equation}
+	r_{t}^{(v,v+h)}=y_t^{(v+h)}-y_t^{(v)}.
+	\label{eq:revision}
+\end{equation}
+La revisión acumulada respecto de la primera publicación es:
+\begin{equation}
+	R_{t,h}=y_t^{(v_0(t)+h)}-y_t^{(v_0(t))},
+	\label{eq:revision_acum}
+\end{equation}
+donde \(v_0(t)\) representa el primer vintage en que el período \(t\) fue publicado y \(h\) es un horizonte definido en tiempo calendario o en número de publicaciones comparables.
+
+La investigación distinguió tres conceptos:
+\begin{itemize}
+	\item \textbf{Revisión:} diferencia observada entre dos publicaciones de una misma observación económica.
+	\item \textbf{Predicción de revisión:} estimación de una revisión futura utilizando exclusivamente información anterior a su publicación.
+	\item \textbf{Nowcasting:} estimación del estado económico corriente antes de que se publique la estadística objetivo.
+\end{itemize}
+El objeto principal fue la predicción de revisiones, no el nowcasting general del PBI.
+
+\subsection{Definición del objetivo y horizonte comparable}
+
+La variable objetivo principal será la revisión entre la primera publicación y una publicación posterior separada por un horizonte fijo de tiempo calendario. Se priorizará un horizonte de cuatro trimestres desde la primera publicación, siempre que la documentación del dataset permita establecer fechas reales de publicación comparables. Si los vintages no representan publicaciones regulares o el calendario no permite una equivalencia temporal, se utilizará un horizonte alternativo justificado y se documentará antes de estimar modelos.
+
+Para cada período \(t\):
+\begin{equation}
+	Y_t^{(H)}=y_t^{(v_H(t))}-y_t^{(v_0(t))},
+	\label{eq:target}
+\end{equation}
+donde \(v_H(t)\) es el primer vintage publicado al menos \(H\) meses después de \(v_0(t)\). Se exigirá una regla uniforme para todos los períodos incluidos. Como análisis de sensibilidad se considerarán horizontes alternativos, siempre que exista cobertura suficiente.
+
+La variable objetivo no se denominará ``valor verdadero'' ni ``valor definitivo''. Se interpretará como revisión a horizonte fijo, porque las publicaciones posteriores también pueden revisarse. Los períodos sin horizonte completo se excluirán del análisis confirmatorio y se informará cuántas observaciones se perdieron por esta regla.
+
+\subsection{Modelos econométricos de referencia}
+
+\subsubsection{Modelo autorregresivo de revisiones}
+
+Una referencia parsimoniosa será:
+\begin{equation}
+	R_{t,H}=\alpha+\sum_{j=1}^{p}\phi_j R_{t-j,H}^{(obs)}+\boldsymbol{\beta}'\mathbf{x}_{t}^{(v_0)}+\varepsilon_t,
+	\label{eq:ar}
+\end{equation}
+donde las variables explicativas deberán estar disponibles en la fecha de origen del pronóstico. El orden \(p\) se seleccionará dentro de cada ventana de entrenamiento mediante un criterio previamente establecido, como BIC, sin utilizar observaciones del período de evaluación.
+
+\subsubsection{Regresión regularizada}
+
+Se estimará Ridge como:
+\begin{equation}
+	\widehat{\boldsymbol{\beta}}=
+	\arg\min_{\boldsymbol{\beta}}
+	\left\{
+	\sum_{t\in\mathcal{T}_{train}}(Y_t-\mathbf{x}_t'\boldsymbol{\beta})^2
+	+\lambda\|\boldsymbol{\beta}\|_2^2
+	\right\}.
+	\label{eq:ridge}
+\end{equation}
+La estandarización y la selección de \(\lambda\) se realizarán dentro de cada ventana de entrenamiento.
+
+\subsubsection{XGBoost}
+
+XGBoost se incluirá como benchmark no lineal basado en árboles potenciados. Su inclusión permitirá evaluar si las relaciones no lineales y las interacciones entre predictores pueden capturarse sin recurrir a una arquitectura cuántica. Los hiperparámetros se seleccionarán mediante validación temporal interna y presupuesto de búsqueda documentado.
+
+\subsubsection{Modelo de factores dinámicos}
+
+El modelo de factores dinámicos resumirá información de indicadores disponibles en tiempo real:
+\begin{align}
+	\mathbf{x}_t&=\boldsymbol{\Lambda}f_t+\boldsymbol{\epsilon}_t,\\
+	f_t&=\mathbf{A}f_{t-1}+\boldsymbol{\eta}_t.
+\end{align}
+Su estimación requerirá un panel de indicadores con fechas de publicación y frecuencia verificables. Si la base disponible contiene únicamente vintages del PBI, no se presentará este modelo como un nowcasting macroeconómico completo. En ese caso, se limitará su uso a un modelo factorial de las variables efectivamente disponibles o se excluirá del análisis principal.
+
+\subsubsection{Corrección clásica de sesgo}
+
+Se incluirá un benchmark de corrección de sesgo estimado únicamente con errores de revisión históricos disponibles en cada origen:
+\begin{equation}
+	\widehat{Y}_{t,H}^{\,BC}=\widehat{Y}_{t,H}^{\,base}+
+	\widehat{\mathbb{E}}\left[R_{t,H}\mid\mathcal{I}_{v_0(t)}\right].
+\end{equation}
+La especificación exacta dependerá de la información observada y se mantendrá fija antes de la evaluación final. Este benchmark es importante porque la pregunta relevante no es si QRC supera un modelo débil, sino si agrega información respecto de una corrección estadística convencional bien especificada.
+
+\subsection{Computación de reservorio cuántico}
+
+En QRC, una secuencia de entradas clásicas \(u_t\) se codifica en un sistema cuántico cuyo estado evoluciona según una dinámica fija o parcialmente controlada. Las mediciones producen un vector de características:
+\begin{equation}
+	\mathbf{z}_t=
+	\left(
+	\langle O_1\rangle_t,\ldots,\langle O_m\rangle_t
+	\right)'.
+\end{equation}
+La capa de lectura se estima mediante una regresión regularizada:
+\begin{equation}
+	\widehat{\mathbf{w}}=
+	\arg\min_{\mathbf{w}}
+	\left\{
+	\sum_{t\in\mathcal{T}_{train}}
+	(Y_t-\mathbf{w}'\mathbf{z}_t)^2+
+	\lambda\|\mathbf{w}\|_2^2
+	\right\}.
+	\label{eq:qrc_readout}
+\end{equation}
+La arquitectura, codificación, número de qubits, observables, profundidad y shots deberán fijarse y registrarse. La complejidad del circuito se mantendrá acotada para reducir inestabilidad y costo.
+
+La motivación de QRC es que una dinámica recurrente puede representar dependencias temporales no lineales. No se supondrá que la dinámica cuántica posee memoria superior a la de un reservorio clásico. Esa posibilidad se evaluará empíricamente.
+
+\subsection{Control clásico de reservorio}
+
+El control principal será un Echo State Network (ESN) o reservorio aleatorio clásico, con protocolo de selección de hiperparámetros y dimensiones de lectura comparable. La igualdad del número de características observadas no implica equivalencia funcional exacta; por ello, el ESN se interpretará como control de plausibilidad y no como prueba formal de dequantization. Se reportarán también controles clásicos adicionales, cuando sea viable, con regularización y presupuesto de búsqueda comparables.
+
+\subsection{Límites de la inferencia sobre ventaja cuántica}
+
+Una mejora predictiva de QRC frente a un conjunto limitado de benchmarks no demostraría ventaja cuántica computacional. Para sostener una afirmación de ventaja cuántica se necesitaría establecer una comparación de complejidad y recursos frente a los mejores algoritmos clásicos conocidos para la misma tarea. Esta investigación se limitará a evaluar desempeño predictivo y costo computacional en el entorno experimental utilizado. No se utilizarán expresiones como ``supremacía cuántica'' o ``ventaja cuántica demostrada''.
+
+\subsection{Marco legal e institucional}
+
+El análisis utilizará estadísticas macroeconómicas públicas y documentación institucional. Se respetarán las condiciones de uso, atribución y redistribución establecidas por los repositorios y organismos proveedores. La metodología de cuentas nacionales, los cambios de año base y los procedimientos oficiales de publicación deberán documentarse a partir de las publicaciones del INEI y, cuando corresponda, del BCRP. No se atribuirán al marco legal disposiciones específicas sin identificar la norma, fecha y artículo aplicable.

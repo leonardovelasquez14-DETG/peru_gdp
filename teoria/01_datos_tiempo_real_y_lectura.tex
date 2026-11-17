@@ -6,132 +6,185 @@
 
 \apacabecera
   {Guía de datos en tiempo real: vintages, releases y lectura de archivos}
-  {Manual teórico y práctico 1 — Organización e inspección de datos}
-  {En este proyecto no queremos predecir usando la historia ya corregida que aparece hoy en las estadísticas oficiales, sino colocarnos exactamente en los zapatos del analista en cada mes histórico. Este documento explica qué archivos existen en el repositorio, qué significa cada columna y cómo cargarlos en Python sin contaminar las pruebas con información del futuro.}
+  {Manual teórico y práctico 1 — Organización, anatomía e inspección de datos}
+  {En este proyecto no queremos predecir el pasado usando las cifras ya corregidas que aparecen hoy en las estadísticas oficiales, sino reconstruir con exactitud qué sabía un analista en cada mes histórico. Este manual explica qué significa trabajar en tiempo real, cómo se organiza el triángulo de revisiones y el formato \emph{releases}, qué contiene exactamente cada carpeta del repositorio, qué trampas conviene evitar y cómo cargar los archivos en Python de manera segura y reproducible.}
 
 \section{Por qué trabajamos con datos en tiempo real}
 
-Cuando el Banco Central de Reserva del Perú (BCRP) publica por primera vez el crecimiento del PBI de un mes determinado, esa cifra inicial es preliminar. Conforme llegan más encuestas de empresas, estadísticas tributarias y cuentas trimestrales conciliadas, el BCRP corrige esa cifra en publicaciones posteriores \parencite{cruz2025}. Si tomáramos hoy la última tabla histórica de crecimiento del PBI y entrenáramos un modelo con ella, estaríamos cometiendo un error grave: asumir que en el año 2005 o en abril de 2020 ya se conocían revisiones que en realidad tardaron meses o años en calcularse \parencite{croushore2011}.
+Cuando el Banco Central de Reserva del Perú (BCRP) difunde por primera vez la tasa de crecimiento interanual del Producto Bruto Interno (PBI) de un mes determinado, esa cifra inicial es apenas una fotografía preliminar. En ese instante todavía faltan encuestas sectoriales tardías, declaraciones tributarias completas, balances empresariales y conciliaciones con las cuentas trimestrales del Instituto Nacional de Estadística e Informática (INEI). Conforme esa nueva información ingresa en los meses siguientes, el BCRP actualiza y corrige la cifra originalmente publicada en sus Notas Semanales \parencite{cruz2025}.
 
-Para evitar esa trampa metodológica, la literatura macroeconómica distingue dos fechas diferentes para cada dato numérico:
+Si un investigador descargara hoy la última serie histórica disponible en la web del BCRP y entrenara un modelo predictivo sobre esos datos definitivos o revisados, cometería una distorsión metodológica grave conocida como \emph{sesgo de anticipación} (\emph{look-ahead bias}): estaría asumiendo implícitamente que en enero de 2005 o en junio de 2020 el analista ya conocía revisiones que, en la práctica, tardaron meses o incluso años en incorporarse a la contabilidad nacional \parencite{croushore2011}. En una evaluación honesta fuera de muestra, un modelo únicamente puede mirar aquello que ya figuraba en las publicaciones oficiales hasta el momento exacto en que se formula el pronóstico.
+
+Para impedir cualquier filtración desde el futuro, la econometría en tiempo real asigna dos coordenadas temporales distintas a cada dato numérico:
 \begin{enumerate}
-  \item \textbf{Período objetivo ($t$ o \codigo{target\_period}):} el mes económico al que se refiere el crecimiento (por ejemplo, \codigo{2020m4} corresponde a abril de 2020).
-  \item \textbf{Fecha de publicación o \emph{vintage} ($v$):} el mes en que apareció publicada la Nota Semanal o el informe oficial que contenía ese dato (por ejemplo, \codigo{2020m6} es junio de 2020, dos meses después).
+  \item \textbf{Período económico objetivo (\(t\) o \codigo{target\_period}):} indica el mes en que ocurrió la actividad económica medida (por ejemplo, \codigo{2020m4} designa a abril de 2020, el primer mes completo de confinamiento estricto por la pandemia).
+  \item \textbf{Fecha de publicación o \emph{vintage} (\(v\)):} indica el mes de la Nota Semanal del BCRP en la que apareció impreso ese valor numérico (por ejemplo, \codigo{2020m6} designa a la edición de junio de 2020, dos meses después del cierre de abril).
 \end{enumerate}
 
-A partir de estos dos índices se define nuestra variable objetivo principal: la revisión acumulada a un horizonte fijo de \(H = 11\) meses posteriores a la primera estimación, expresada en puntos porcentuales (p.p.):
+Con esta doble indexación, denotamos por \(y_t^{(v)}\) la variación porcentual interanual del PBI del mes \(t\) según aparecía publicada en el \emph{vintage} \(v\). Conviene precisar una limitación documental relevante hallada durante la auditoría inicial: el archivo maestro de metadatos del repositorio (\codigo{wr\_metadata.csv}) registra el año, el mes y el número correlativo de Nota Semanal, pero no consigna el día calendario exacto de publicación. Por ello, todo nuestro diseño empírico se define explícitamente como una evaluación de \textbf{pseudo-tiempo-real mensual}. En la práctica, el rezago inicial de publicación (\codigo{lag0\_months}) resulta sumamente regular: promedia \(2{,}003\) meses (\(\text{DE}=0{,}051\)), ubicándose prácticamente siempre a dos meses del período económico (con máximo ocasional de tres meses).
+
+\subsection{Definición formal de la variable objetivo y convención de signos}
+
+El problema central de este trabajo no consiste en realizar \emph{nowcasting} del PBI antes de su anuncio oficial, sino en \textbf{predecir la revisión futura} una vez que la primera cifra ya vio la luz pública. Para evaluar todas las observaciones bajo una regla uniforme, definimos la revisión acumulada a un horizonte calendario fijo de \(H\) meses posteriores a la primera estimación:
 \begin{equation}
-  Y_t^{(H)} = y_t^{(v_H)} - y_t^{(v_0)},
+  Y_t^{(H)} = y_t^{(v_H(t))} - y_t^{(v_0(t))},
   \label{eq:revision_def}
 \end{equation}
-donde \(y_t^{(v_0)}\) es la primera cifra publicada para el mes \(t\) en su primer \emph{vintage} observable \(v_0(t)\), y \(y_t^{(v_H)}\) es la cifra que aparece para ese mismo mes \(t\) exactamente \(H\) meses después en \(v_H(t)\). Si \(Y_t^{(11)} > 0\), significa que la economía terminó revisándose al alza respecto al anuncio inicial.
+donde \(v_0(t)\) es el primer \emph{vintage} observable en el que aparece publicado el mes \(t\), y \(v_H(t)\) es el primer \emph{vintage} disponible al menos \(H\) meses calendario después de \(v_0(t)\). Nuestro horizonte confirmatorio principal se fijó ex ante en \(H = 11\) meses, expresando \(Y_t^{(11)}\) en puntos porcentuales (p.p.).
+
+\cajaproposito{Advertencia crítica sobre la convención de signos}{%
+La Ecuación~\ref{eq:revision_def} resta el valor revisado menos el valor inicial (\(y_{\text{revisado}} - y_{\text{inicial}}\)). En consecuencia, un valor positivo (\(Y_t^{(11)} > 0\)) indica que el dato inicial \textbf{subestimó} la actividad económica y la cifra terminó corrigiéndose \textbf{al alza}. En algunos archivos exploratorios previos aparecía una columna llamada \codigo{first\_minus\_last} con el signo invertido (\(y_{\text{inicial}} - y_{\text{final}}\)); para evitar confusiones interpretativas, en todas las etapas del proyecto debe utilizarse exclusivamente \codigo{Y\_H11} (o verificar que una media positiva signifique revisión al alza).}
 
 \section{Anatomía del triángulo de revisiones y del formato releases}
 
-La estructura bidimensional de publicaciones forma un \emph{triángulo de datos en tiempo real}, esquematizado en la Figura~\ref{fig:esquema_triangulo}. Cada fila representa una nueva edición mensual publicada (\emph{vintage}), mientras que cada columna corresponde a un mes económico evaluado. Al avanzar hacia abajo, los valores de una misma columna se van actualizando; la diagonal principal contiene las primeras publicaciones \(y_t^{(v_0)}\).
+Cuando organizamos todas las publicaciones históricas en una tabla bidimensional donde las \textbf{filas} representan fechas de publicación sucesivas (\emph{vintages} \(v\)) y las \textbf{columnas} representan los meses económicos evaluados (\emph{target periods} \(t\)), surge de forma natural una matriz triangular inferior conocida como \emph{triángulo de datos en tiempo real}. La Figura~\ref{fig:esquema_triangulo} ilustra esta geometría con cifras reales del episodio pandémico de 2020.
 
 \begin{figure}[htbp]
-  \caption{Esquema conceptual del triángulo de vintages y definición de la revisión \(Y_t^{(H)}\)}
+  \caption{Esquema conceptual del triángulo de vintages y cálculo real de \(Y_t^{(11)}\) en 2020m4}
   \label{fig:esquema_triangulo}
   \centering
   \begin{tikzpicture}[font=\small, >=Stealth]
-    % Matriz ejemplo de 4x4
     \matrix (M) [matrix of nodes, draw=apaBorder, fill=apaBg, inner sep=4pt, ampersand replacement=\&,
-      nodes={font=\small\normalfont, minimum width=1.75cm, minimum height=0.68cm, anchor=center}] {
+      nodes={font=\small\normalfont, minimum width=1.8cm, minimum height=0.68cm, anchor=center}] {
       \textbf{\scriptsize Vintage \textbackslash\ Mes} \& \textbf{\scriptsize 2020m3} \& \textbf{\scriptsize 2020m4} \& \textbf{\scriptsize 2020m5} \\
       \texttt{2020m5} \& \(-16{,}3\) \& \(\cdot\) \& \(\cdot\) \\
       \texttt{2020m6} \& \(-16{,}7\) \& |[text=apaAccent, font=\small\bfseries]| \(-40{,}5\) \& \(\cdot\) \\
       \texttt{2020m7} \& \(-16{,}8\) \& \(-40{,}5\) \& \(-32{,}7\) \\
       \texttt{2021m5} \& \(-16{,}3\) \& |[text=apaNavy, font=\small\bfseries]| \(-39{,}1\) \& \(-32{,}8\) \\
     };
-    \node[above=4pt of M-1-3, color=apaSlate] {\scriptsize Columna fija: mismo mes objetivo \(t\)};
+    \node[above=4pt of M-1-3, color=apaSlate] {\scriptsize Columna fija: historia revisada del mismo mes \(t\)};
     \node[right=10pt of M-3-4, align=left, font=\footnotesize] (n1) {Primera publicaci\'on \(y_t^{(v_0)}\)\\(\texttt{2020m4} visto en \texttt{2020m6})};
     \node[right=10pt of M-5-4, align=left, font=\footnotesize] (n2) {Publicaci\'on a \(H=11\) meses \(y_t^{(v_{11})}\)\\(\texttt{2020m4} visto en \texttt{2021m5})};
     \draw[->, color=apaAccent, thick] (M-3-3.east) to[out=12,in=180] (n1.west);
     \draw[->, color=apaNavy, thick] (M-5-3.south) to[out=-28,in=180] (n2.west);
     \node[below=8pt of M, align=center, font=\footnotesize, fill=white, draw=apaBorder, rounded corners=2pt, inner sep=4pt]
-      {Revisi\'on observada en nuestro repositorio para \texttt{2020m4}: \(Y_{\text{2020m4}}^{(11)} = (-39{,}1) - (-40{,}5) = \mathbf{+1{,}4\text{ p.p.}}\)};
+      {Revisi\'on verificada para abril de 2020: \(Y_{\text{2020m4}}^{(11)} = (-39{,}1) - (-40{,}5) = \mathbf{+1{,}4\text{ p.p.}}\)};
   \end{tikzpicture}
-  \apanota{Valores reales de abril de 2020 en \codigo{output/analysis\_output/muestra\_objetivo\_gdp.csv} (el ejemplo ilustra la lógica diagonal del triángulo; los puntos indican meses aún no publicados en esa fecha).}
+  \apanota{Valores reales extraídos de \codigo{output/analysis\_output/muestra\_objetivo\_gdp.csv}. Los puntos medios (\(\cdot\)) denotan celdas estructuralmente ausentes porque en ese \emph{vintage} el mes económico todavía no se había publicado.}
 \end{figure}
 
-Cuando se reorganiza el triángulo desplazando cada columna hacia arriba para alinear la primera estimación de todos los meses en una misma columna, se obtiene el formato \emph{releases}: allí las columnas se llaman \codigo{gdp\_1} (primera estimación), \codigo{gdp\_2} (segunda publicación), y así sucesivamente \parencite{cruz2025}. En este proyecto trabajamos con ambos enfoques, pero nuestro análisis econométrico y predictivo usa el horizonte fijo \(H=11\) meses sobre \emph{vintages} limpios, visualizados en la Figura~\ref{fig:triangulo_real}.
+La lectura del triángulo admite tres direcciones complementarias:
+\begin{itemize}
+  \item \textbf{Lectura horizontal (fila fija):} muestra exactamente el cuadro estadístico que tenía frente a sí el economista en la fecha \(v\). Por ejemplo, la fila \codigo{2020m6} contiene la primera cifra de abril (\(-40{,}5\%\)) y, al mismo tiempo, la primera actualización de marzo (\(-16{,}7\%\)), pero deja en blanco mayo de 2020 porque aún no había sido publicado.
+  \item \textbf{Lectura vertical (columna fija):} sigue la evolución histórica de un mismo mes \(t\) a lo largo del tiempo. Descender por la columna \codigo{2020m4} revela que el dato se mantuvo en \(-40{,}5\%\) al mes siguiente y ascendió a \(-39{,}1\%\) once meses después (\(+1{,}4\) p.p. menos severo que el anuncio original).
+  \item \textbf{Lectura diagonal:} conecta las primeras estimaciones \(y_t^{(v_0)}\) de todos los meses sucesivos y conforma la frontera temporal real en la que operan los modelos predictivos.
+\end{itemize}
+
+\subsection{Por qué distinguimos entre formato vintages y formato releases}
+
+Una segunda forma de organizar exactamente la misma información consiste en deslizar hacia arriba cada columna del triángulo para eliminar las celdas vacías iniciales y alinear todas las primeras publicaciones en una sola columna. Ese reordenamiento genera el formato \emph{releases}: en lugar de columnas fechadas (\codigo{tp\_2020m4}), cada fila corresponde a un período objetivo y las columnas se etiquetan secuencialmente como \codigo{gdp\_1} (primera estimación publicada), \codigo{gdp\_2} (segunda aparición), y así sucesivamente hasta \codigo{gdp\_38} para el PBI mensual \parencite{cruz2025}.
+
+Aunque el formato \emph{releases} resulta muy cómodo para estudiar cuántas veces cambia un dato, presenta una desventaja decisiva para el pronóstico causal en tiempo real: la columna \codigo{gdp\_12} no garantiza que hayan transcurrido exactamente doce meses calendario desde la primera publicación si faltó alguna edición intermedia o si varió la cadencia de actualización. Por esta razón, la auditoría y todos nuestros modelos se construyen directamente sobre el triángulo de \emph{vintages} (Figura~\ref{fig:triangulo_real}), midiendo horizontes en meses calendario exactos.
 
 \begin{figure}[htbp]
-  \caption{Mapa histórico completo del triángulo de vintages del PBI peruano (1994--2025)}
+  \caption{Mapa histórico de las revisiones acumuladas del PBI peruano desde \(v_0\) hasta \(h=12\)}
   \label{fig:triangulo_real}
   \centering
   \includegraphics[width=0.92\textwidth]{figuras/triangulo_gdp.png}
-  \apanota{Tomado de la auditoría de Etapa 1 (\codigo{output/analysis\_output/}). La diagonal inferior derecha representa el frente de publicaciones más recientes; cada salto vertical o franja continua refleja actualizaciones metodológicas o de año base.}
+  \apanota{Tomado de la auditoría de Etapa~1 (\codigo{output/analysis\_output/}). Se distinguen franjas verticales intensas en los cambios de año base de 2000 y 2014, así como la reducción de dispersión posterior.}
 \end{figure}
 
-\section{Mapa de carpetas y variantes del dataset}
+La Figura~\ref{fig:metricas_horizonte} resume la decisión empírica tomada en la Etapa~1 respecto al horizonte \(H\). Cuando exigimos un horizonte nominal de \(H=12\) meses, las variaciones históricas en la extensión de la ventana móvil impresa en las Notas Semanales dejan \(18\) huecos internos (concretamente, todos los meses de diciembre entre 2018 y 2023, además de fines de 2015 y 2016), reduciendo la serie limpia a \(331\) observaciones. A partir de \(H=18\) la cobertura colapsa a apenas \(5\) puntos y a \(H=24\) desaparece por completo (\(0\) observaciones). En contraste, fijar \(H=11\) meses preserva la escala anual completa con \textbf{cero huecos internos} y reúne \(n = 350\) observaciones continuas limpias (desde octubre de 1993 hasta noviembre de 2024).
 
-Para trabajar con orden sin alterar nunca los datos originales, el proyecto separa claramente los insumos heredados de las salidas reproducibles generadas por nuestros scripts. La Tabla~\ref{tab:mapa_carpetas} resume qué contiene cada directorio relevante.
+\begin{figure}[htbp]
+  \caption{Sensibilidad de la cobertura muestral y momentos de la revisión según horizonte \(H\)}
+  \label{fig:metricas_horizonte}
+  \centering
+  \includegraphics[width=0.92\textwidth]{figuras/metricas_horizonte_gdp.png}
+  \apanota{Salida de \codigo{scripts/etapa1\_auditoria\_vintages.py}. A partir de \(H=12\) aparecen discontinuidades internas que justifican elegir \(H=11\) como objetivo confirmatorio.}
+\end{figure}
+
+\section{Mapa de carpetas, variantes del dataset y trampas frecuentes}
+
+Para garantizar reproducibilidad absoluta sin contaminar nunca la materia prima histórica, el proyecto mantiene una separación estricta entre los insumos heredados de solo lectura y los artefactos regenerables producidos por nuestros scripts. La Tabla~\ref{tab:mapa_carpetas} detalla el contenido verificado de cada directorio.
 
 \begin{table}[htbp]
-  \caption{Estructura práctica de carpetas de datos y resultados en el repositorio}
+  \caption{Estructura verificada de carpetas de datos y salidas reproducibles del repositorio}
   \label{tab:mapa_carpetas}
   \centering
-  \begin{tabular}{@{}p{4.3cm}p{4.4cm}p{5.8cm}@{}}
+  \begin{tabular}{@{}p{4.3cm}p{3.9cm}p{6.5cm}@{}}
     \toprule
-    Carpeta & Formato principal & Qué contiene y para qué sirve \\
+    Carpeta & Contenido / formato & Propósito práctico en el proyecto \\
     \midrule
-    \codigo{raw/} & CSV con separador \codigo{;} & Tablas crudas históricas (1994--2012) extraídas y curadas desde Notas Semanales. \\
-    \codigo{input/} & CSV y Parquet ancho & Tablas individuales estandarizadas por Nota Semanal (\codigo{table\_1}, \codigo{table\_2}). \\
-    \codigo{peru\_gdp\_rtd\_output/} & CSV (\codigo{vintages/} y \codigo{releases/}) & Triángulo maestro consolidado en tiempo real (\(\approx 1994\text{--}2025\)) con sus variantes ajustadas. \\
-    \codigo{output/analysis\_output/} & CSV, JSON, PNG & Auditoría de Etapa 1: serie larga \codigo{vintages\_long.csv} y muestra limpia \codigo{muestra\_objetivo\_gdp.csv}. \\
-    \codigo{output/etapa2\_econometria/} & CSV, JSON, PNG & Pruebas estadísticas de sesgo, autocorrelación, Mincer--Zarnowitz y RESET. \\
-    \codigo{output/etapa3\_clasicos/} & CSV, JSON, PNG & Predicciones causales OOS (2003m2--2024m11), métricas globales y por regímenes. \\
+    \codigo{raw/} & 420 CSV (\codigo{;}) & Tablas históricas digitalizadas y curadas (1994--2012) desde Notas Semanales. \\
+    \codigo{input/} & 696 CSV + 732 Parquet & Tablas estandarizadas por edición (\codigo{table\_1} mensual y \codigo{table\_2} trimestral). \\
+    \codigo{peru\_gdp\_rtd\_output/} & 16 CSV maestros & Triángulos consolidados de \emph{vintages} (8) y \emph{releases} (8), 1994--2025. \\
+    \codigo{output/analysis\_output/} & CSV, JSON, PNG & Auditoría Etapa~1: \codigo{vintages\_long.csv} (44\,307 filas) y \codigo{muestra\_objetivo\_gdp.csv}. \\
+    \codigo{output/etapa2\_econometria/} & CSV, JSON, PNG & Diagnósticos HAC: sesgo, colas, ACF/PACF, Mincer--Zarnowitz, ARCH y RESET. \\
+    \codigo{output/etapa3\_clasicos/} & CSV, JSON, PNG & Backtest causal de 8 modelos clásicos (2003m2--2024m11, \(n=250\)). \\
+    \codigo{output/etapa4\_reservorios/} & CSV, JSON, PNG & Evaluación de \codigo{QRC\_Ising5}, \codigo{ESN\_20}, \codigo{ESN\_64} y \codigo{RFF\_20} en 5 semillas. \\
+    \codigo{output/etapa6\_sintetico/} & CSV, JSON, PNG & Calibración bootstrap (300), 12 escenarios Monte Carlo y análisis de potencia MDE. \\
+    \codigo{output/etapa8\_inferencia/} & CSV, JSON, PNG & Holm--Bonferroni, BH-FDR, \emph{Model Confidence Set}, cierre Etapa~7 y SHA-256. \\
     \bottomrule
   \end{tabular}
-  \apanota{Las tres primeras carpetas permanecen intactas como insumos base; las subcarpetas dentro de \codigo{output/} son regenerables íntegramente desde \codigo{scripts/}.}
+  \apanota{Las tres primeras carpetas permanecen intactas como fuentes base; todas las subcarpetas de \codigo{output/} pueden regenerarse de forma determinista ejecutando los scripts en \codigo{scripts/}.}
 \end{table}
 
-Dentro de \codigo{peru\_gdp\_rtd\_output/output/vintages/} coexisten cuatro versiones del triángulo mensual. Es fundamental distinguirlas:
+\subsection{Las cuatro variantes de archivo en peru\_gdp\_rtd\_output}
+
+Dentro de \codigo{peru\_gdp\_rtd\_output/output/vintages/} coexisten cuatro archivos mensuales cuya distinción es crítica para no incurrir en errores graves de lectura:
 \begin{itemize}
-  \item \codigo{monthly\_gdp\_vintages.csv}: cifras tal como fueron publicadas (incluye saltos bruscos cuando cambia el año base de las cuentas nacionales).
-  \item \codigo{monthly\_gdp\_vintages\_adjusted.csv}: incorpora banderas o ajustes que identifican las transiciones de año base (en Perú ocurrieron en julio de 2000 y marzo de 2014).
-  \item \codigo{...\_benchmark.csv} y \codigo{...\_adjusted\_benchmark.csv}: versiones filtradas para análisis de revisiones estándar sin rupturas metodológicas extremas.
+  \item \codigo{monthly\_gdp\_vintages.csv} (\(6\,424\) filas brutas \(\times\) \(408\) columnas: \codigo{industry}, \codigo{vintage} y \(406\) períodos \codigo{tp\_1992m1} a \codigo{tp\_2025m10}): contiene las tasas de crecimiento interanuales tal como fueron publicadas originalmente, sin marcas de cambio de base. Al depurar \(3\,131\) filas exactamente repetidas detectadas en la auditoría (con cero conflictos numéricos), quedan \(3\,293\) pares únicos industria--\emph{vintage}.
+  \item \codigo{monthly\_gdp\_vintages\_adjusted.csv}: conserva exactamente la misma estructura pero inserta el valor centinela \textbf{\(-999999{,}0\)} (\(2\,652\) celdas en total) en publicaciones previas a las transiciones de año base (\codigo{2000m7} para el paso a base 1994 y \codigo{2014m3} para el paso a base 2007). Su función es impedir que un investigador reste cifras calculadas con canastas estadísticas incompatibles.
+  \item \codigo{monthly\_gdp\_vintages\_benchmark.csv}: \textbf{no contiene tasas de crecimiento del PBI}. Se trata de una matriz indicadora binaria (\(0{,}0\) o \(1{,}0\)) que marca los \emph{vintages} en los que el BCRP actualizó simultáneamente las Tablas~1 (mensual) y~2 (trimestral/anual) según \codigo{wr\_metadata.csv}. Confundir este archivo con crecimiento económico arruinaría cualquier estimación.
+  \item \codigo{monthly\_gdp\_vintages\_adjusted\_benchmark.csv}: combina ambos criterios: valores binarios \(0{,}0/1{,}0\) para revisiones simultáneas junto con el centinela \(-999999{,}0\) en cruces de año base.
 \end{itemize}
 
-\section{Cómo leer e interpretar los datos en Python}
+\subsection{Valores especiales y cobertura sectorial real}
 
-En el trabajo diario rara vez necesitarás recorrer los 384 archivos de \codigo{input/} uno por uno. Según la tarea, conviene cargar directamente el triángulo maestro o la muestra ya auditada de la Etapa~1. El siguiente ejemplo práctico muestra cómo leer los cuatro tipos de archivos más frecuentes.
+Además de distinguir el archivo correcto, es indispensable interpretar adecuadamente tres clases de valores especiales en los datos:
+\begin{enumerate}
+  \item \textbf{\codigo{NaN} frente a \codigo{0.0}:} una celda vacía (\codigo{NaN}) significa dato aún no publicado o no disponible en ese \emph{vintage}; jamás debe reemplazarse por cero, ya que \codigo{0.0} denota crecimiento económico nulo real.
+  \item \textbf{Centinela \(-999999{,}0\):} es una etiqueta lógica de quiebre metodológico, nunca una caída económica real; cualquier promedio o diferencia sin filtrarlo previamente produciría resultados absurdos.
+  \item \textbf{Extremos legítimos (\(\lvert y \rvert > 50\%\)):} sectores altamente volátiles como pesca registran \(901\) observaciones reales fuera de \([-50, 50]\) en \codigo{vintages\_long.csv}, y el propio PBI agregado exhibe \(13\) registros extremos durante el desplome de 2020 y el rebote estadístico de 2021 (por ejemplo, \(-40{,}5\%\) en abril de 2020 y \(+58{,}5\%\) en abril de 2021). Por tanto, no deben recortarse a ciegas como errores tipográficos.
+\end{enumerate}
 
-\begin{lstlisting}[language=Python, caption={Lectura práctica de datos crudos, vintages, releases y muestra limpia en Python}]
+Respecto a la desagregación productiva, el dataset registra el PBI agregado (\codigo{gdp}) más ocho ramas agrupadas en sector primario y no primario. La auditoría de cobertura (\codigo{cobertura\_sectorial.csv}) verifica que seis ramas poseen cobertura continua o casi completa desde 1994 (\codigo{agriculture}, \codigo{commerce}, \codigo{construction}, \codigo{fishing}, \codigo{manufacturing} con \(384\) \emph{vintages}, y \codigo{mining} con \(375\), omitiendo nueve meses entre \codigo{2018m8} y \codigo{2019m4}). Por ello, estas seis ramas conforman la base de predictores en tiempo real desde la Etapa~3, mientras \codigo{services} (inicia en \codigo{1997-07}, \(342\) \emph{vintages}) y \codigo{electricity} (inicia en \codigo{2003-05}, \(272\) \emph{vintages}) se reservan para análisis sectoriales parciales.
+
+\section{Cómo leer, filtrar y auditar los datos en Python}
+
+En el flujo cotidiano de investigación rara vez es necesario recorrer manualmente las carpetas \codigo{raw/} o \codigo{input/}. Para análisis econométricos o de aprendizaje automático conviene partir directamente de la tabla auditada \codigo{muestra\_objetivo\_gdp.csv} (para la serie objetivo del PBI) y de \codigo{vintages\_long.csv} (para extraer covariables sectoriales observables dentro de cada \(v_0\)). El fragmento siguiente muestra cómo cargar los cuatro formatos principales del repositorio respetando sus separadores, codificación y filtros oficiales.
+
+\begin{lstlisting}[language=Python, caption={Lectura segura de datos crudos, input, triángulo maestro y muestra limpia en Python}]
 import pandas as pd
 
-# 1. Leer una tabla historica cruda (separador ';' y BOM UTF-8)
+# 1. Leer una tabla historica cruda de 1994 (separador ';' y BOM UTF-8)
 raw_1994 = pd.read_csv(
     "raw/old_weekly_reports/table_1/1994/ns-03-1994.csv",
     sep=";", encoding="utf-8-sig"
 )
 
-# 2. Leer un archivo moderno de input en Parquet (2025)
+# 2. Leer un archivo moderno estandarizado de input en Parquet (2025)
 inp_2025 = pd.read_parquet("input/table_1/2025/ns-04-2025.parquet")
 
-# 3. Leer el triangulo maestro en formato ancho (408 columnas: tp_YYYYmM)
+# 3. Leer el triangulo maestro consolidado en formato ancho (6424 x 408)
 vintages = pd.read_csv(
-    "peru_gdp_rtd_output/output/vintages/monthly_gdp_vintages.csv"
+    "peru_gdp_rtd_output/output/vintages/monthly_gdp_vintages.csv",
+    low_memory=False
 )
-gdp_tri = vintages[vintages["industry"] == "gdp"].sort_values("vintage")
+gdp_tri = (
+    vintages[vintages["industry"] == "gdp"]
+    .drop_duplicates(subset=["industry", "vintage"])
+    .sort_values("vintage")
+)
 
-# 4. Leer la muestra limpia oficial lista para modelar (Etapa 1)
+# 4. Leer el formato releases (406 periodos x 331 columnas)
+releases = pd.read_csv(
+    "peru_gdp_rtd_output/output/releases/monthly_gdp_releases.csv"
+)
+print(releases[["target_period", "gdp_1", "gdp_2", "gdp_3"]].dropna().head())
+
+# 5. Leer la muestra oficial auditada de la Etapa 1 (n = 350 limpios a H=11)
 muestra = pd.read_csv(
     "output/analysis_output/muestra_objetivo_gdp.csv",
     parse_dates=["target_date", "v0_date", "v_H11_date"]
 )
-limpia_h11 = muestra[muestra["estado_H11"] == "incluido_limpio"]
+limpia_h11 = muestra[muestra["estado_H11"] == "incluido_limpio"].copy()
+print(f"Observaciones limpias H=11: {len(limpia_h11)}")
 print(limpia_h11[["target_period", "v0_date", "y0", "y_H11", "Y_H11"]].head())
 \end{lstlisting}
 
-Para interpretar correctamente \codigo{muestra\_objetivo\_gdp.csv}, recuerda tres reglas simples verificadas en la auditoría inicial:
-\begin{enumerate}
-  \item \textbf{Signo correcto:} la columna \codigo{Y\_H11} calcula \(y_t^{(v_{11})} - y_t^{(v_0)}\). En el repositorio existen columnas heredadas con el signo invertido (\codigo{first\_minus\_last}), por lo que siempre debe usarse \codigo{Y\_H11} o verificar que una media positiva indique revisión al alza.
-  \item \textbf{Filtro \codigo{estado\_H11}:} los 24 períodos cuyo horizonte cruza un cambio de año base (`2000m7` o `2014m3`) y los meses sin primera publicación real en el momento oportuno (\codigo{lag0\_months > 3}) quedan marcados y excluidos al filtrar \codigo{incluido\_limpio}, dejando exactamente \(n=350\) observaciones continuas.
-  \item \textbf{Sectores:} las seis ramas con cobertura completa o casi completa en tiempo real (\codigo{agriculture}, \codigo{commerce}, \codigo{construction}, \codigo{fishing}, \codigo{manufacturing} y \codigo{mining}) sirven como predictores, mientras \codigo{electricity} (desde 2003) y \codigo{services} (desde 1997) se reservan para análisis sectoriales parciales.
-\end{enumerate}
+Al trabajar con \codigo{muestra\_objetivo\_gdp.csv}, recuerda siempre por qué de los \(406\) períodos totales (\texttt{1992m1}--\texttt{2025m10}) quedan exactamente \(n = 350\) observaciones limpias al filtrar \texttt{estado\_H11 == "incluido\_limpio"}: se excluyen \(21\) meses iniciales de 1992--1993 sin primera publicación oportuna (\texttt{lag0\_months > 3}), \(11\) meses finales de 2024--2025 cuyo horizonte de \(11\) meses aún no cerraba al finalizar 2025, y los \(24\) meses cuyo tramo \([v_0, v_{11}]\) atraviesa los cambios de año base de \codigo{2000m7} o \codigo{2014m3}. Con esa depuración explícita quedan eliminados tanto los sesgos por empalmes metodológicos como las fugas temporales.
 
 \apabibliografia
 

@@ -6,30 +6,38 @@
 
 \apacabecera
   {Pipeline de descarga, limpieza de PDFs y construcción del dataset en tiempo real}
-  {Manual teórico y práctico 3 — Módulo \codigo{peru\_gdp\_rtd}}
-  {Mientras el módulo OCR rescata boletines antiguos escaneados, el núcleo \codigo{peru\_gdp\_rtd} automatiza todo el trabajo mensual moderno: descarga Notas Semanales desde el BCRP, recorta páginas útiles, limpia tablas heterogéneas, marca los cambios de año base y arma los archivos finales de \emph{vintages} y \emph{releases} que consumen nuestras etapas de tesis.}
+  {Manual teórico y práctico 3 — Arquitectura del paquete \codigo{peru\_gdp\_rtd}}
+  {Mientras el módulo OCR rescata boletines antiguos escaneados, el núcleo \codigo{peru\_gdp\_rtd} automatiza la actualización y curación completa de la base en tiempo real: descarga Notas Semanales desde el BCRP, recorta páginas útiles, limpia tablas con formatos de dos épocas distintas, identifica cambios de año base y genera los archivos maestros de \emph{vintages} y \emph{releases}.}
 
-\section{Arquitectura general de los seis pasos del pipeline}
+\section{Arquitectura modular de seis pasos y principios de ingeniería}
 
-El paquete \codigo{peruvian\_gdp\_revisions-main/peru\_gdp\_rtd/} organiza la construcción de la base de datos en tiempo real en seis pasos secuenciales dirigidos por el script \codigo{scripts/update\_rtd.py} \parencite{cruz2025}. La lógica es separar completamente la obtención de documentos brutos, su limpieza por época y su ensamblado histórico, tal como ilustra la Figura~\ref{fig:pipeline_rtd}.
+El paquete \codigo{peruvian\_gdp\_revisions-main/peru\_gdp\_rtd/} transforma documentos heterogéneos publicados a lo largo de más de tres décadas en un conjunto unificado de paneles listos para investigación econométrica \parencite{cruz2025}. Toda la ejecución está dirigida desde un único punto de entrada, \codigo{scripts/update\_rtd.py}, y obedece a cuatro principios de ingeniería descritos en \codigo{docs/ARCHITECTURE.md}:
+\begin{enumerate}
+  \item \textbf{Configuración centralizada:} ningún parámetro operativo (URLs, selectores CSS, equivalencias de sectores o años base) está incrustado a ciegas en el código; todo reside en \codigo{config/config.yaml}.
+  \item \textbf{Separación estricta de responsabilidades:} descargar archivos web, recortar páginas PDF, limpiar texto tabular, ensamblar series históricas y convertir formatos son módulos independientes.
+  \item \textbf{Idempotencia incremental:} el pipeline compara marcas temporales de modificación (\emph{timestamps}) y registros de control (\codigo{1\_downloaded\_pdfs.txt}, \codigo{2\_shortened\_pdfs.txt}) para no volver a descargar ni reprocesar archivos ya actualizados, salvo que se indique explícitamente.
+  \item \textbf{Tolerancia a fallos de red:} las descargas incorporan reintentos automáticos ante códigos HTTP transitorios (\texttt{429, 500, 502, 503, 504}) con espera exponencial.
+\end{enumerate}
+
+La Figura~\ref{fig:pipeline_rtd} resume la cadena secuencial de seis pasos que recorre cada lote mensual de Notas Semanales hasta producir los dieciséis archivos maestros finales.
 
 \begin{figure}[htbp]
-  \caption{Arquitectura de seis pasos del pipeline \codigo{peru\_gdp\_rtd}}
+  \caption{Arquitectura secuencial de seis pasos del pipeline \codigo{peru\_gdp\_rtd}}
   \label{fig:pipeline_rtd}
   \centering
   \begin{tikzpicture}[
     node distance=0.45cm and 0.45cm,
-    pasobox/.style={draw=apaNavy, fill=apaBg, rounded corners=2pt, minimum height=0.95cm,
-      text width=3.9cm, align=center, font=\scriptsize},
+    pasobox/.style={draw=apaNavy, fill=apaBg, rounded corners=2pt, minimum height=0.98cm,
+      text width=4.0cm, align=center, font=\scriptsize},
     >=Stealth
   ]
     \node[pasobox] (s1) {\textbf{Paso 1: Scraping BCRP}\\Selenium descarga PDFs semanales (\codigo{bcrp\_scraper.py})};
-    \node[pasobox, right=of s1] (s2) {\textbf{Paso 2: Recorte de PDF}\\PyMuPDF extrae páginas con palabras clave (\codigo{pdf\_processor.py})};
+    \node[pasobox, right=of s1] (s2) {\textbf{Paso 2: Recorte de PDF}\\PyMuPDF filtra páginas con palabras clave (\codigo{pdf\_processor.py})};
     \node[pasobox, right=of s2] (s3) {\textbf{Paso 3: Limpieza dual}\\Limpiadores 1994--2012 vs. 2013+ hacia \codigo{input/}};
 
-    \node[pasobox, below=0.75cm of s3] (s4) {\textbf{Paso 4: Concatenación}\\Une tablas anuales en triángulo único \codigo{vintages}};
-    \node[pasobox, left=of s4] (s5) {\textbf{Paso 5: Metadatos}\\Identifica cambios de año base y genera \codigo{\_adjusted}};
-    \node[pasobox, left=of s5] (s6) {\textbf{Paso 6: Releases}\\Convierte columnas \codigo{tp\_*} en secuencia \codigo{\_1, \_2, \_3}};
+    \node[pasobox, below=0.78cm of s3] (s4) {\textbf{Paso 4: Concatenación}\\Une tablas limpias en triángulo \codigo{vintages}};
+    \node[pasobox, left=of s4] (s5) {\textbf{Paso 5: Metadatos}\\Centinela de año base y matriz \codigo{benchmark}};
+    \node[pasobox, left=of s5] (s6) {\textbf{Paso 6: Releases}\\Compacta columnas \codigo{tp\_*} en \texttt{\_1, \_2, \dots, \_38}};
 
     \draw[->, thick, apaNavy] (s1) -- (s2);
     \draw[->, thick, apaNavy] (s2) -- (s3);
@@ -37,54 +45,91 @@ El paquete \codigo{peruvian\_gdp\_revisions-main/peru\_gdp\_rtd/} organiza la co
     \draw[->, thick, apaNavy] (s4) -- (s5);
     \draw[->, thick, apaNavy] (s5) -- (s6);
   \end{tikzpicture}
-  \apanota{Secuencia controlada por \codigo{peruvian\_gdp\_revisions-main/scripts/update\_rtd.py}.}
+  \apanota{Orquestación ejecutada por \codigo{peruvian\_gdp\_revisions-main/scripts/update\_rtd.py} con parámetros de \codigo{config/config.yaml}.}
 \end{figure}
 
-El primer paso emplea automatización de navegador mediante Selenium (\codigo{bcrp\_scraper.py}, compatible con Chrome, Firefox o Edge) con esperas aleatorias para evitar bloqueos y no duplicar descargas existentes. En el segundo paso, dado que las Notas Semanales modernas contienen decenas de cuadros macroeconómicos, \codigo{search\_keywords} y \codigo{shortened\_pdf} en \codigo{pdf\_processor.py} (usando PyMuPDF/\codigo{fitz}) conservan únicamente las páginas donde aparecen las tablas mensuales y trimestrales del PBI.
+\section{Pasos 1 a 3: obtención de boletines, recorte y limpieza de dos épocas}
 
-\section{Limpieza diferenciada y control de cambios de año base}
+El \textbf{Paso~1} (\codigo{scrapers/bcrp\_scraper.py}) automatiza un navegador mediante Selenium (compatible con Chrome, Firefox o Edge) para recorrer el listado oficial de Notas Semanales del BCRP buscando el selector CSS \texttt{\#rightside ul.listado-bot-std-claros}. Para respetar la infraestructura del banco central sin desencadenar bloqueos de tráfico, descarga en lotes de hasta \(6\) documentos (máximo \(60\) por sesión por defecto) introduciendo pausas aleatorias de entre \(5{,}0\) y \(10{,}0\) segundos entre peticiones.
 
-El formato editorial de las publicaciones del BCRP cambió sustancialmente a lo largo de tres décadas. Por ese motivo, el paquete \codigo{peru\_gdp\_rtd/cleaners/} separa el código en dos ramas: \codigo{old\_table\_cleaner.py} (para cuadros de 1994--2012 con nombres bilingües y columnas tipo \codigo{1992\_ene}) y \codigo{new\_table\_cleaner.py} (para el diseño moderno desde 2013). Ambos convergen en tablas estándar guardadas en \codigo{input/} con dos columnas identificadoras (\codigo{industry} y \codigo{vintage}) seguidas de columnas \codigo{tp\_YYYYmM}.
+El \textbf{Paso~2} (\codigo{processors/pdf\_processor.py}) resuelve el peso excesivo de los boletines completos modernos. Como cada Nota Semanal contiene decenas de cuadros monetarios, fiscales y cambiarios, PyMuPDF (\codigo{fitz}) inspecciona las páginas buscando las cadenas \texttt{"ECONOMIC SECTORS"} o \texttt{"SECTORES ECONÓMICOS"}, conservando únicamente las páginas de portada y cuadros del PBI (por defecto índices \texttt{[1, 3]} en boletines de cuatro páginas recortadas) en \codigo{shortened\_pdfs/}.
 
-Un riesgo crítico en series largas del PBI es confundir una actualización metodológica con una revisión económica real. En el Perú ocurrieron dos cambios de año base dentro del rango de la muestra: la transición hacia base \(1994 = 100\) reflejada en el \emph{vintage} \codigo{2000m7} y el cambio hacia base \(2007 = 100\) en el \emph{vintage} \codigo{2014m3}. En esos meses, las cifras anteriores pueden cambiar abruptamente o reindexarse, produciendo revisiones artificiales de varios puntos porcentuales. Por ello, \codigo{metadata\_handler.py} marca estas transiciones generando las versiones \codigo{\_adjusted} y \codigo{\_benchmark} de la Tabla~\ref{tab:versiones_rtd}.
+El \textbf{Paso~3} (\codigo{cleaners/}) constituye la pieza más trabajosa del paquete (más de \(70\) funciones especializadas) debido a que el diseño editorial del BCRP cambió radicalmente a lo largo de treinta años. Por eso la limpieza se divide en dos ramas:
+\begin{itemize}
+  \item \textbf{Limpiador histórico (\codigo{old\_table\_cleaner.py}, 1994--2012):} procesa las tablas CSV curadas en \codigo{raw/old\_weekly\_reports/}, cuyas columnas usan encabezados tipo \codigo{1992\_ene} o la abreviatura peruana \codigo{"set"} para septiembre (mapeada explícitamente a mes \(9\) junto con \codigo{"sep"} en \codigo{config.yaml}).
+  \item \textbf{Limpiador moderno (\codigo{new\_table\_cleaner.py}, 2013+):} extrae y parsea los cuadros desde los PDF recortados modernos, unificando encabezados en español e inglés hacia los nueve códigos canónicos (\codigo{agriculture}, \codigo{commerce}, \codigo{construction}, \codigo{electricity}, \codigo{fishing}, \codigo{manufacturing}, \codigo{mining}, \codigo{services} y \codigo{gdp}).
+\end{itemize}
+Ambas ramas redondean los valores a \(1\) decimal oficial y depositan las tablas homogéneas por edición (\codigo{table\_1} mensual y \codigo{table\_2} trimestral/anual) en formato CSV y Parquet dentro de \codigo{input/}, con estructura común (\codigo{industry}, \codigo{vintage} y columnas \codigo{tp\_YYYYmM}).
+
+\section{Pasos 4 y 5: ensamblado histórico, metadatos y control de año base}
+
+En el \textbf{Paso~4} (\codigo{transformers/concatenator.py} y \codigo{vintage\_preparator.py}), las tablas individuales acumuladas durante 384 meses se apilan cronológicamente para construir los archivos maestros \codigo{monthly\_gdp\_vintages.csv} y \codigo{quarterly\_gdp\_vintages.csv}. Cabe mencionar que en la auditoría de Etapa~1 verificamos que el archivo mensual bruto contenía \(6\,424\) filas por efecto de \(3\,131\) duplicados exactos arrastrados en la concatenación incremental; al deduplicar por el par clave \texttt{(industry, vintage)} no apareció ni un solo conflicto numérico ni celda con fecha futura (\(t > v\)), quedando \(3\,293\) filas únicas limpias.
+
+El \textbf{Paso~5} (\codigo{transformers/metadata\_handler.py}) ejecuta tres tareas delicadas que conviene distinguir con total claridad para no malinterpretar sus archivos resultantes:
+\begin{enumerate}
+  \item \textbf{Registro de revisiones y calendario (\codigo{wr\_metadata.csv}):} mediante la expresión regular \texttt{"en la Nota N° (\textbackslash d\{1,2\})"}, extrae de las páginas 1 y 2 el identificador de actualización de la Tabla~1 y la Tabla~2. Cuando ambas tablas registran actualización simultánea, marca \texttt{benchmark\_revision = 1}. Como \codigo{wr\_metadata.csv} solo almacena \texttt{(year, wr, month)} sin día calendario, el proyecto queda acotado a un análisis de pseudo-tiempo-real mensual.
+  \item \textbf{Centinela de cambio de año base (\codigo{\_adjusted.csv}):} cuando un país actualiza el año base de sus cuentas nacionales, modifica ponderadores sectoriales, encuestas fuente y metodología contable, reexpresando series pasadas. En nuestra muestra ocurrieron dos cambios de año base tras la base inicial de 1990: la transición a base \(1994 = 100\) en el \emph{vintage} \codigo{2000m7} (Nota Semanal~28 de 2000) y el paso a base \(2007 = 100\) en \codigo{2014m3} (Nota Semanal~11 de 2014). Ese mes la historia previa da un salto artificial —por ejemplo, según \codigo{reporte\_cambios\_metodologicos.csv}, el crecimiento de diciembre de 1999 cayó de \(9{,}3\%\) en \codigo{2000m6} a \(3{,}7\%\) en \codigo{2000m7} (\(-5{,}6\) p.p.) únicamente por el cambio de base—. Para impedir que nadie confunda ese empalme metodológico con una revisión estadística, \codigo{apply\_base\_year\_sentinel} inserta el valor centinela \(-999999{,}0\) encima de la fila de transición en las columnas afectadas, generando \codigo{monthly\_gdp\_vintages\_adjusted.csv}.
+  \item \textbf{Matriz indicadora de revisiones simultáneas (\codigo{\_benchmark.csv}):} mediante la función \codigo{convert\_to\_benchmark\_dataset}, convierte las tasas de crecimiento del PBI en una matriz binaria (\(1{,}0\) si el \emph{vintage} tuvo actualización simultánea de Tablas~1 y~2; \(0{,}0\) en caso contrario), preservando además los centinelas \(-999999{,}0\) en la variante \codigo{\_adjusted\_benchmark.csv}. Es crucial recordar que estos archivos \codigo{\_benchmark} contienen banderas \(0/1\) y no tasas de crecimiento económico.
+\end{enumerate}
 
 \begin{table}[htbp]
-  \caption{Diferencias entre los cuatro archivos maestros generados en \codigo{peru\_gdp\_rtd\_output/output/}}
+  \caption{Diferencias reales entre las cuatro variantes maestras en \codigo{peru\_gdp\_rtd\_output/output/}}
   \label{tab:versiones_rtd}
   \centering
-  \begin{tabular}{@{}p{4.8cm}p{9.7cm}@{}}
+  \begin{tabular}{@{}p{5.1cm}p{9.6cm}@{}}
     \toprule
-    Sufijo del archivo & Qué incorpora y cuándo conviene utilizarlo \\
+    Archivo mensual (\codigo{vintages/} y \codigo{releases/}) & Qué contiene exactamente y cuándo debe utilizarse \\
     \midrule
-    \codigo{monthly\_gdp\_vintages.csv} & Valores crudos publicados originalmente en cada Nota Semanal (sin ajuste de cambio de base). \\
-    \codigo{...\_adjusted.csv} & Aplica tratamiento de metadatos sobre las transiciones de año base (insumo de nuestra Etapa~1 para detectar centinelas en \codigo{2000m7} y \codigo{2014m3}). \\
-    \codigo{...\_benchmark.csv} & Subconjunto preparado para comparaciones estándar de revisiones homogéneas. \\
-    \codigo{...\_adjusted\_benchmark.csv} & Versión combinada con ambos filtros aplicados. \\
+    \codigo{monthly\_gdp\_vintages.csv} & Tasas de crecimiento interanuales tal como fueron publicadas en cada Nota Semanal (sin marcas centinela). \\
+    \codigo{...\_adjusted.csv} & Tasas de crecimiento con el centinela \(-999999{,}0\) marcando las celdas previas a los cambios de base de \codigo{2000m7} y \codigo{2014m3}. \\
+    \codigo{...\_benchmark.csv} & Matriz binaria (\(0{,}0 / 1{,}0\)) que indica actualización simultánea de Tabla~1 y Tabla~2; no contiene crecimiento del PBI. \\
+    \codigo{...\_adjusted\_benchmark.csv} & Matriz binaria (\(0{,}0 / 1{,}0\)) combinada con preservación del centinela \(-999999{,}0\) en transiciones de año base. \\
     \bottomrule
   \end{tabular}
-  \apanota{Cada variante existe tanto en formato \codigo{vintages/} (triángulo por \emph{vintage}) como en \codigo{releases/} (alineado por número de publicación).}
+  \apanota{Verificado directamente sobre los \(16\) archivos inventariados en \codigo{output/analysis\_output/inventario\_fuentes.csv} y en \codigo{peru\_gdp\_rtd/transformers/metadata\_handler.py}.}
 \end{table}
 
-\section{Cómo pasar de vintages a releases y cómo ejecutar el pipeline}
+\section{Paso 6: conversión a formato releases y ejecución modular segura}
 
-La transformación final del Paso~6 (\codigo{releases\_converter.py}) reordena el triángulo cronológicamente para que el investigador vea cuántas veces cambió cada período desde su primera aparición. Para cualquier mes objetivo \(t\), se extraen todos los valores no nulos \(y_t^{(v)}\) ordenados por fecha de publicación \(v\), asignando el primer no nulo a la columna \codigo{<industria>\_1}, el segundo a \codigo{<industria>\_2}, y así sucesivamente \parencite{banbura2013}. En nuestras auditorías, por ejemplo, para el sector \codigo{agriculture} las columnas llegan hasta el índice \codigo{330} en el archivo maestro de \emph{releases} (331 columnas totales).
+Finalmente, el \textbf{Paso~6} (\codigo{transformers/releases\_converter.py}) reorganiza el triángulo desde la perspectiva de publicación hacia la perspectiva de evento económico \parencite{banbura2013}. Para cada industria y cada columna objetivo \codigo{tp\_YYYYmM}, toma todos los valores no nulos ordenados cronológicamente por \emph{vintage} y los compacta asignando el primer registro no nulo a \codigo{<industria>\_1} (primera estimación), el segundo a \codigo{<industria>\_2} (primera revisión), y así sucesivamente. La Tabla~\ref{tab:ejemplo_releases} ilustra concretamente cómo opera esta transformación sobre dos meses consecutivos.
 
-Para actualizar o reconstruir únicamente etapas puntuales sin volver a descargar cientos de PDFs del BCRP, el script \codigo{update\_rtd.py} ofrece banderas modulares muy seguras:
+\begin{table}[htbp]
+  \caption{Ilustración paso a paso de la conversión de \emph{vintages} a \emph{releases}}
+  \label{tab:ejemplo_releases}
+  \centering
+  \begin{tabular}{@{}lccc@{\hspace{1.2cm}}lccc@{}}
+    \toprule
+    \multicolumn{4}{c}{Entrada (\codigo{vintages})} & \multicolumn{4}{c}{Salida (\codigo{releases})} \\
+    \cmidrule(r){1-4} \cmidrule(l){5-8}
+    \codigo{vintage} & \codigo{tp\_2017m1} & \codigo{tp\_2017m2} & \codigo{tp\_2017m3} & \codigo{target\_period} & \codigo{gdp\_1} & \codigo{gdp\_2} & \codigo{gdp\_3} \\
+    \midrule
+    \codigo{2017m3} & \(1{,}5\) & \codigo{NaN} & \codigo{NaN} & \codigo{2017m1} & \(1{,}5\) & \(1{,}4\) & \(1{,}4\) \\
+    \codigo{2017m4} & \(1{,}4\) & \(1{,}2\) & \codigo{NaN} & \codigo{2017m2} & \(1{,}2\) & \(1{,}3\) & \codigo{NaN} \\
+    \codigo{2017m5} & \(1{,}4\) & \(1{,}3\) & \(2{,}1\) & \codigo{2017m3} & \(2{,}1\) & \codigo{NaN} & \codigo{NaN} \\
+    \bottomrule
+  \end{tabular}
+  \apanota{Esquema adaptado de \codigo{releases\_converter.py}. En el archivo real \codigo{monthly\_gdp\_releases.csv} (\(406\) filas \(\times\) \(331\) columnas totales), el número de publicaciones registradas alcanza hasta \codigo{\_38} en \codigo{gdp}, \codigo{agriculture} y cinco sectores más, \codigo{\_36} en \codigo{services} y \codigo{\_28} en \codigo{electricity}.}
+\end{table}
 
-\begin{lstlisting}[language=bash, caption={Ejecución selectiva y segura del pipeline maestro RTD}]
+Para reconstruir o probar etapas puntuales del pipeline sin descargar nuevamente cientos de documentos desde el portal del BCRP, \codigo{scripts/update\_rtd.py} ofrece banderas modulares muy seguras:
+
+\begin{lstlisting}[language=bash, caption={Comandos selectivos y seguros del pipeline maestro RTD}]
 cd peruvian_gdp_revisions-main
 
-# 1. Simular ejecución sin escribir ni descargar archivos (dry run)
+# 1. Simular ejecucion completa sin descargar ni modificar archivos (dry run)
 python scripts/update_rtd.py --dry-run
 
-# 2. Reconstruir limpieza, concatenación, metadatos y releases sin descargar PDFs
+# 2. Reconstruir limpieza, concatenacion, metadatos y releases sin scraping
 python scripts/update_rtd.py --steps 3,4,5,6 --skip-download
 
-# 3. Usar archivo de configuración personalizado con registro detallado
+# 3. Regenerar solo el triangulo final con configuracion propia y logs DEBUG
 python scripts/update_rtd.py --config config/config.yaml --steps 4,5,6 -v
+
+# 4. Validar integridad de los archivos generados
+python scripts/validate_rtd.py
 \end{lstlisting}
 
-\noindent Como buena práctica en este proyecto, si ya contamos con los datos consolidados en \codigo{peru\_gdp\_rtd\_output/}, no es necesario correr el Paso~1 (scraping) ni el Paso~2: nuestros análisis de las Etapas~1 a~3 parten de estos archivos congelados y los auditan sin sobreescribirlos.
+Como norma de higiene metodológica en nuestras etapas analíticas (Etapas~1 a~8), la carpeta \codigo{peru\_gdp\_rtd\_output/} actúa como instantánea de solo lectura: los scripts de análisis auditan y leen esos archivos congelados sin sobreescribirlos jamás.
 
 \apabibliografia
 

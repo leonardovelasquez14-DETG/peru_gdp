@@ -1,0 +1,114 @@
+\documentclass[12pt,letterpaper]{article}
+\usepackage{apa_manual}
+\apatituloCorto{Reservorios clásicos ESN y cuánticos QRC}
+
+\begin{document}
+
+\apacabecera
+  {Redes de Reservorio (ESN) y Computación de Reservorio Cuántico (QRC) sin perder el rumbo}
+  {Manual teórico y práctico 6 — Fundamento conceptual de la Etapa 4}
+  {En series macroeconómicas mensuales solo tenemos unos 350 puntos de datos. Entrenar redes neuronales profundas o circuitos cuánticos variacionales completos suele sobreajustarse a tan pocos meses. Este manual explica de forma sencilla por qué usamos \emph{reservorios} —clásicos (ESN) y cuánticos (QRC)— que combinan memoria no lineal acotada con un ajuste lineal simple y robusto.}
+
+\section{La idea central del reservorio: separar memoria y aprendizaje}
+
+Entrenar todos los pesos internos de una red neuronal recurrente o de un algoritmo cuántico variacional requiere optimizar miles de parámetros iterativamente, exponiendo al modelo a mínimos locales o estancamiento de gradientes \parencite{cerezo2021}. La computación de reservorios toma una ruta mucho más ingeniosa y apta para muestras económicas cortas:
+\begin{enumerate}
+  \item Construye un \textbf{reservorio fijo} (no entrenable) que recibe los indicadores económicos del mes \(t\) y los mezcla con su memoria de meses anteriores mediante transformaciones no lineales suaves.
+  \item Entrena \textbf{únicamente una capa de lectura lineal (Ridge)} sobre las señales medidas del reservorio para predecir la revisión \(Y_t^{(11)}\).
+\end{enumerate}
+
+De este modo, en lugar de ajustar miles de pesos no lineales con solo \(100\text{--}339\) meses históricos, el optimizador resuelve un problema convexo con solución analítica cerrada exacta, heredando a la vez interacciones no lineales ricas que el reservorio produjo automáticamente.
+
+\section{Echo State Networks (ESN): el referente clásico}
+
+Propuestas por \textcite{jaeger2001}, las redes ESN representan el análogo clásico más directo de QRC y sirven como control obligatorio en nuestro diseño experimental para no atribuir a la mecánica cuántica una ganancia que simplemente proviene de tener memoria no lineal recurrente. En cada mes \(t\), el estado interno del reservorio \(\mathbf{h}_t \in \mathbb{R}^{N_r}\) se actualiza según:
+\begin{equation}
+  \mathbf{h}_t = (1 - \gamma)\,\mathbf{h}_{t-1} + \gamma\, \tanh\!\bigl(W_{\text{in}}\mathbf{x}_t + W \mathbf{h}_{t-1}\bigr),
+  \label{eq:esn}
+\end{equation}
+donde \(\mathbf{x}_t\) contiene nuestros predictores en tiempo real observables en \(v_0(t)\) (por ejemplo \(y_0\), crecimiento sectorial, rezagos completados \(Y_{t-11}, Y_{t-12}\) y estacionalidad), \(\gamma \in (0, 1]\) es la tasa de fuga que regula cuánta memoria pasada se retiene, y las matrices fijas \((W_{\text{in}}, W)\) se generan de forma aleatoria controlada.
+
+Para que el reservorio funcione sin volverse caótico, el mayor valor propio de \(W\) (su radio espectral \(\rho(W)\)) debe mantenerse por debajo de \(1\): esto garantiza la \emph{propiedad de estado eco}, es decir, que la influencia de condiciones iniciales remotas se desvanece gradualmente con el tiempo. Finalmente, la predicción se obtiene leyendo linealmente el estado oculto mediante regresión Ridge:
+\begin{equation}
+  \widehat{Y}_t^{\text{ESN}} = \mathbf{w}_{\text{ESN}}^{\top}\mathbf{h}_t + b.
+  \label{eq:esn_readout}
+\end{equation}
+
+\section{Quantum Reservoir Computing (QRC): qué aporta un reservorio cuántico}
+
+Siguiendo la formulación original de \textcite{fujii2017}, QRC reemplaza las neuronas artificiales de la Ecuación~\ref{eq:esn} por un sistema de \(N_q\) qubits acoplados (por ejemplo \(N_q = 4 \text{ a } 6\) qubits simulados exactamente con álgebra matricial). Aunque el número de qubits es pequeño, su espacio de estados crece exponencialmente como \(2^{N_q}\) (un sistema de 6 qubits vive en un espacio de Hilbert de 64 dimensiones, o matrices densidad de \(64 \times 64\)), ofreciendo un mapa de características no lineal muy rico \parencite{schuld2021}.
+
+Como compara visualmente la Figura~\ref{fig:esn_vs_qrc}, el flujo operacional de QRC en cada mes \(t\) consta de tres pasos limpios:
+\begin{enumerate}
+  \item \textbf{Codificación de entrada:} los predictores estandarizados \(\tilde{\mathbf{x}}_t\) modulan ángulos de rotación cuántica \(\theta_j = \pi \tanh(\alpha \tilde{x}_{t,j})\) o inyectan parcialmente un nuevo estado en los qubits.
+  \item \textbf{Evolución dinámica unitaria:} el sistema evoluciona bajo un hamiltoniano fijo de Ising o circuito cuántico entrelazante \(U\), combinando la información recién ingresada con parte de la memoria cuántica acumulada del paso anterior.
+  \item \textbf{Medición de observables y lectura Ridge:} se extraen los valores esperados reales de operadores de Pauli locales y correlaciones entre pares de qubits, \(\phi_{t,i} = \langle Z_i \rangle_t\) y \(\phi_{t,ij} = \langle Z_i Z_j \rangle_t\), formando el vector clásico \(\boldsymbol{\phi}_t\) que entra a exactamente la misma capa lineal Ridge:
+\end{enumerate}
+\begin{equation}
+  \widehat{Y}_t^{\text{QRC}} = \mathbf{w}_{\text{QRC}}^{\top}\boldsymbol{\phi}_t + b.
+  \label{eq:qrc_readout}
+\end{equation}
+
+\begin{figure}[htbp]
+  \caption{Comparación estructural entre Echo State Network (ESN) y Quantum Reservoir Computing (QRC)}
+  \label{fig:esn_vs_qrc}
+  \centering
+  \begin{tikzpicture}[
+    node distance=0.45cm and 0.55cm,
+    blk/.style={draw=apaNavy, fill=apaBg, rounded corners=2pt, minimum height=0.85cm,
+      text width=3.1cm, align=center, font=\scriptsize},
+    qblk/.style={draw=apaAccent, fill=white, rounded corners=2pt, minimum height=0.85cm,
+      text width=3.2cm, align=center, font=\scriptsize},
+    >=Stealth
+  ]
+    \node[blk] (inp) {\textbf{Entrada en \(v_0(t)\)}\\\(\mathbf{x}_t\): \(y_0\), sectores, rezagos, armonía};
+
+    \node[blk, above right=0.35cm and 0.8cm of inp] (esn) {\textbf{Reservorio ESN}\\Neuronas fijas + \(\tanh\)\\Estado \(\mathbf{h}_t \in \mathbb{R}^{N_r}\)};
+    \node[qblk, below right=0.35cm and 0.8cm of inp] (qrc) {\textbf{Reservorio QRC}\\Ángulos + evolución \(U\)\\Observables \(\boldsymbol{\phi}_t = \langle Z_i\rangle, \langle Z_i Z_j\rangle\)};
+
+    \node[blk, right=3.8cm of inp, text width=3.0cm] (ridge) {\textbf{Capa de lectura Ridge}\\Misma regularización \(\lambda\) causal para ambos};
+    \node[blk, right=0.55cm of ridge, text width=2.1cm] (out) {\textbf{Pronóstico}\\ \(\widehat{Y}_t^{(11)}\) (p.p.)};
+
+    \draw[->, thick, apaNavy] (inp) |- (esn.west);
+    \draw[->, thick, apaAccent] (inp) |- (qrc.west);
+    \draw[->, thick, apaNavy] (esn.east) -| (ridge.north);
+    \draw[->, thick, apaAccent] (qrc.east) -| (ridge.south);
+    \draw[->, thick, apaNavy] (ridge) -- (out);
+  \end{tikzpicture}
+  \apanota{Ambos modelos comparten exactamente la misma matriz causal \(\mathbf{x}_t\) y la misma selección causal de \(\lambda\) en la capa final, asegurando comparabilidad justa en la Etapa~4.}
+\end{figure}
+
+\section{Conexión directa con el hallazgo COVID-19 de la Etapa 3}
+
+¿Por qué esta arquitectura resulta tan pertinente después de lo visto en la Etapa~3? En la Ecuación~\ref{eq:esn}, la función \(\tanh(\cdot)\) siempre devuelve valores encerrados en el rango \((-1, +1)\), y en QRC toda función trigonométrica de ángulo o expectativa de Pauli \(\langle Z_i \rangle\) permanece estrictamente acotada en \([-1, +1]\). La Figura~\ref{fig:compresion_acotada} ilustra gráficamente esa propiedad crucial: mientras un predictor lineal como Ridge escala indefinidamente cuando \(y_0\) salta a \(+58{,}5\%\) en abril de 2021, tanto las activaciones tipo \(\tanh\) de ESN como las mediciones \(\cos(\theta) / \langle Z_i\rangle\) de QRC saturan de manera suave.
+
+\begin{figure}[htbp]
+  \caption{Saturación acotada de reservorios frente a extrapolación lineal sin límite}
+  \label{fig:compresion_acotada}
+  \centering
+  \begin{tikzpicture}
+    \begin{axis}[
+      width=0.84\textwidth, height=5.2cm,
+      xlabel={Señal estandarizada de entrada \(z\) (por ejemplo \(y_0\) en crisis)},
+      ylabel={Respuesta transformada},
+      xmin=-5, xmax=5, ymin=-2.4, ymax=2.4,
+      axis lines=middle,
+      grid=major, grid style={dotted, apaBorder},
+      legend style={at={(0.03,0.96)}, anchor=north west, font=\scriptsize, draw=apaBorder, fill=white}
+    ]
+      \addplot[thick, apaAccent, domain=-2.4:2.4, samples=40] {x};
+      \addlegendentry{Lineal sin cota (extrapola en COVID)}
+      \addplot[thick, apaNavy, domain=-5:5, samples=100] {tanh(x)};
+      \addlegendentry{Compresión ESN: \(\tanh(z) \in (-1,1)\)}
+      \addplot[thick, apaGreen, dashed, domain=-5:5, samples=120] {cos(deg(0.75*x))};
+      \addlegendentry{Expectativa cuántica: \(\cos(\alpha z) \in [-1,1]\)}
+    \end{axis}
+  \end{tikzpicture}
+  \apanota{Esquema didáctico que explica por qué los reservorios evitan el desbordamiento observado en \codigo{Ridge} durante abril de 2020 y abril de 2021.}
+\end{figure}
+
+En la Etapa~4 evaluaremos exactamente si esa no linealidad acotada permite a ESN y QRC retener el liderazgo de \codigo{Ridge} antes de 2020 sin sufrir su colapso durante 2020--2021, comparándolos en igualdad de condiciones contra \codigo{GBDT\_NumPy} y con control de capacidad equivalente.
+
+\apabibliografia
+
+\end{document}

@@ -1,0 +1,135 @@
+\documentclass[12pt,letterpaper]{article}
+\usepackage{apa_manual}
+\apatituloCorto{Herramienta OCR para Notas Semanales}
+
+\begin{document}
+
+\apacabecera
+  {Uso y funcionamiento del módulo OCR para Notas Semanales históricas (1994--2012)}
+  {Manual teórico y práctico 2 — Digitalización de documentos escaneados}
+  {Las primeras Notas Semanales del BCRP anteriores a 2013 no se publicaron como texto digital copiable, sino como páginas escaneadas. El módulo OCR transforma esas imágenes en archivos CSV estructurados y alimenta la base histórica que luego usan todos nuestros modelos econométricos y de Machine Learning.}
+
+\section{Por qué fue necesario construir un flujo OCR}
+
+Un archivo PDF puede guardar la información de dos maneras muy distintas: como texto vectorial interno (caso de las Notas Semanales modernas desde 2013) o como una fotografía escaneada donde los números son simplemente píxeles grises y negros. Para rescatar las publicaciones de 1994 a 2012 sin digitar manualmente cientos de cuadros, el proyecto incorporó una herramienta de Reconocimiento Óptico de Caracteres (OCR) basada en Tesseract y OpenCV en la carpeta \codigo{peruvian\_gdp\_revisions-main/OCR/} \parencite{cruz2025}.
+
+Conviene tener presente una regla práctica importante del proyecto: el módulo OCR sirve para documentar y reproducir cómo se extrajeron los cuadros escaneados, tras lo cual pasaron por curación humana para garantizar cero errores de lectura en los datos oficiales guardados dentro de \codigo{raw/old\_weekly\_reports/}. Por eso, en las etapas de modelado posteriores nunca reejecutamos OCR sobre \codigo{raw/}, sino cuando queremos auditar o rescatar documentos escaneados adicionales.
+
+\section{Cómo funciona por dentro: limpieza de imagen y extracción}
+
+Leer números pequeños de un periódico o boletín escaneado de hace treinta años produce muchos errores si la imagen tiene manchas, inclinación o sombreado de tabla. Por esta razón, el archivo \codigo{image\_preprocessor.py} aplica una tubería secuencial de 11 etapas antes de pasar la página al motor de lectura, resumida en la Figura~\ref{fig:flujo_ocr}.
+
+\begin{figure}[htbp]
+  \caption{Diagrama de flujo del módulo OCR implementado en \codigo{OCR/ocr\_processors/}}
+  \label{fig:flujo_ocr}
+  \centering
+  \begin{tikzpicture}[
+    node distance=0.45cm and 0.55cm,
+    box/.style={draw=apaNavy, fill=apaBg, rounded corners=2pt, minimum height=0.82cm,
+      text width=2.85cm, align=center, font=\scriptsize},
+    warn/.style={draw=apaAccent, fill=white, rounded corners=2pt, minimum height=0.82cm,
+      text width=2.85cm, align=center, font=\scriptsize},
+    >=Stealth
+  ]
+    \node[box] (pdf) {\textbf{1. PDF escaneado}\\Conversión a PNG a 300 DPI};
+    \node[box, right=of pdf] (prep) {\textbf{2. Preprocesamiento}\\Gris, Otsu, mediana, rotación y CLAHE};
+    \node[box, right=of prep] (crop) {\textbf{3. Recorte de tabla}\\Mitad superior (\(0\text{--}50\%\): tasas)};
+    \node[box, right=of crop] (ocr) {\textbf{4. Tesseract OCR}\\Idioma \codigo{spa+eng} (\codigo{--psm 6})};
+
+    \node[box, below=0.8cm of crop] (csv) {\textbf{5. Conversor CSV}\\Coincidencia difusa de sectores};
+    \node[warn, left=of csv] (val) {\textbf{6. Validador}\\¿Confianza \(\ge 85\%\) y \(\ge 8\) sectores?};
+    \node[box, below=0.7cm of val] (ok) {\textbf{Salida limpia}\\Guarda CSV en \codigo{OCR/output/}};
+    \node[warn, left=of ok] (rev) {\textbf{Revisión manual}\\Marca archivo en \codigo{OCR/review/}};
+
+    \draw[->, thick, apaNavy] (pdf) -- (prep);
+    \draw[->, thick, apaNavy] (prep) -- (crop);
+    \draw[->, thick, apaNavy] (crop) -- (ocr);
+    \draw[->, thick, apaNavy] (ocr.south) |- (csv.east);
+    \draw[->, thick, apaNavy] (csv) -- (val);
+    \draw[->, thick, apaGreen] (val) -- node[right, font=\scriptsize] {Sí} (ok);
+    \draw[->, thick, apaAccent] (val.west) -| node[pos=0.25, above, font=\scriptsize] {No} (rev.north);
+  \end{tikzpicture}
+  \apanota{Arquitectura implementada en \codigo{peruvian\_gdp\_revisions-main/OCR/ocr\_processors/} y controlada por \codigo{OCR/ocr\_config/config.yaml}.}
+\end{figure}
+
+El paso matemático más decisivo del preprocesamiento es la \emph{binarización adaptativa de Otsu} \parencite{otsu1979}, cuyo propósito es convertir cada píxel gris en blanco puro (fondo) o negro puro (texto). El algoritmo busca el umbral de intensidad \(\tau^{*}\) que separa mejor ambos grupos maximizando la varianza entre clases:
+\begin{equation}
+  \sigma_B^2(\tau) = \omega_0(\tau)\,\omega_1(\tau)\,\bigl[\mu_0(\tau) - \mu_1(\tau)\bigr]^2,
+  \label{eq:otsu}
+\end{equation}
+donde \(\omega_0(\tau)\) y \(\omega_1(\tau)\) son las proporciones de píxeles más oscuros y más claros que el umbral \(\tau\), mientras que \(\mu_0(\tau)\) y \(\mu_1(\tau)\) son sus intensidades promedio. Cuando \(\tau^{*}\) maximiza la Ecuación~\ref{eq:otsu}, los dígitos impresos destacan con nitidez incluso en papeles amarillentos o con contraste desigual, como ilustra la Figura~\ref{fig:otsu_histograma}.
+
+\begin{figure}[htbp]
+  \caption{Principio visual de la umbralización de Otsu para aislar números impresos del fondo}
+  \label{fig:otsu_histograma}
+  \centering
+  \begin{tikzpicture}
+    \begin{axis}[
+      width=0.82\textwidth, height=5.4cm,
+      xlabel={Intensidad del píxel (0 = negro, 255 = blanco)},
+      ylabel={Frecuencia relativa},
+      xmin=0, xmax=255, ymin=0, ymax=0.043,
+      ytick=\empty,
+      axis lines=left,
+      legend style={at={(0.50,0.97)}, anchor=north, font=\scriptsize, draw=apaBorder, fill=white}
+    ]
+      % Distribucion bimodal simulada (tinta alrededor de 55, papel alrededor de 205)
+      \addplot[smooth, thick, apaNavy, domain=0:255, samples=120]
+        {0.018*exp(-((x-55)^2)/(2*18^2)) + 0.028*exp(-((x-205)^2)/(2*16^2))};
+      \addlegendentry{Histograma de grises del escaneo}
+      \addplot[dashed, very thick, apaAccent] coordinates {(132,0) (132,0.032)};
+      \addlegendentry{Umbral óptimo \(\tau^*\) (máxima separación)}
+      \node[font=\scriptsize, color=apaNavy] at (axis cs:55,0.0205) {Tinta (\(\mu_0\))};
+      \node[font=\scriptsize, color=apaNavy] at (axis cs:205,0.0305) {Papel (\(\mu_1\))};
+    \end{axis}
+  \end{tikzpicture}
+  \apanota{Ilustración esquemática del método de \textcite{otsu1979} aplicado sobre imágenes a 300 DPI antes de ejecutar Tesseract.}
+\end{figure}
+
+Adicionalmente, el archivo \codigo{table\_extractor.py} recorta únicamente la mitad superior de cada página (proporción vertical \codigo{[0.0, 0.5]}), pues en los boletines del BCRP la mitad superior reporta tasas de crecimiento porcentual y la mitad inferior reporta índices de nivel. Luego, un emparejamiento difuso corrige errores típicos de lectura en nombres de sectores; por ejemplo, en la demostración oficial del año 2001, el módulo detectó y corrigió lecturas como \textit{``agropacuaro''} \(\to\) \textit{``agropecuario''} o \textit{``posci''} \(\to\) \textit{``pesca''}.
+
+\section{Configuración real y uso desde la línea de comandos}
+
+Todos los parámetros del OCR residen en el archivo YAML \codigo{OCR/ocr\_config/config.yaml}, sin necesidad de editar el código fuente Python para ajustar umbrales o idiomas. La Tabla~\ref{tab:param_ocr} detalla los parámetros clave observados en dicha configuración.
+
+\begin{table}[htbp]
+  \caption{Parámetros principales configurados en \codigo{OCR/ocr\_config/config.yaml}}
+  \label{tab:param_ocr}
+  \centering
+  \begin{tabular}{@{}p{4.6cm}p{2.6cm}p{7.3cm}@{}}
+    \toprule
+    Parámetro & Valor actual & Función práctica en el proyecto \\
+    \midrule
+    \codigo{target\_dpi} & \codigo{300} & Resolución mínima al convertir cada PDF en imagen PNG. \\
+    \codigo{noise\_removal\_method} & \codigo{median} (3) & Elimina motas puntuales de escaneo sin emborronar dígitos. \\
+    \codigo{clahe\_clip\_limit} & \codigo{2.0} & Mejora contraste local cuando la página tiene zonas oscuras. \\
+    \codigo{tesseract.language} & \codigo{spa+eng} & Reconoce encabezados bilingües español e inglés. \\
+    \codigo{tesseract.psm / oem} & \codigo{6} / \codigo{3} & Asume bloque uniforme de texto con motor LSTM estándar. \\
+    \codigo{upper\_table\_region\_ratio} & \codigo{[0.0, 0.5]} & Extrae solo la tabla superior de variaciones porcentuales. \\
+    \codigo{csv\_output.separator} & \codigo{;} & Exporta con punto y coma compatible con las tablas históricas. \\
+    \codigo{confidence\_threshold} & \codigo{0.85} & Envía a revisión humana cualquier hoja con confianza inferior al 85\%. \\
+    \bottomrule
+  \end{tabular}
+  \apanota{Valores verificados directamente en \codigo{peruvian\_gdp\_revisions-main/OCR/ocr\_config/config.yaml}. Requiere tener instalados Tesseract 5.x y Poppler en el sistema.}
+\end{table}
+
+Para ejecutar la herramienta OCR sobre documentos colocados en \codigo{OCR/raw/} (por ejemplo, reproduciendo un año o reanudando un proceso interrumpido), los comandos reales documentados en \codigo{run\_ocr\_pipeline.py} son:
+
+\begin{lstlisting}[language=bash, caption={Comandos reales de ejecución del pipeline OCR}]
+# Ubicarse en el subdirectorio del pipeline original
+cd peruvian_gdp_revisions-main
+
+# Procesar un solo año o un rango específico
+python scripts/run_ocr_pipeline.py --year 2000
+python scripts/run_ocr_pipeline.py --years 1994-2000
+
+# Reanudar desde el último punto de control (checkpoint JSON)
+python scripts/run_ocr_pipeline.py --resume
+
+# Depurar guardando imágenes preprocesadas intermedias
+python scripts/run_ocr_pipeline.py --year 2001 -v --save-images
+\end{lstlisting}
+
+\apabibliografia
+
+\end{document}

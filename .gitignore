@@ -7,7 +7,7 @@ venv/
 .env
 .env.*
 
-# Archivos intermedios de compilacion LaTeX (se conserva main.pdf y fuentes)
+# Archivos intermedios de compilacion LaTeX (se conservan PDFs y fuentes)
 main_tex/*.aux
 main_tex/*.bbl
 main_tex/*.bcf
@@ -19,6 +19,18 @@ main_tex/*.toc
 main_tex/*.synctex.gz
 main_tex/*.fdb_latexmk
 main_tex/*.fls
+
+teoria/*.aux
+teoria/*.bbl
+teoria/*.bcf
+teoria/*.blg
+teoria/*.log
+teoria/*.out
+teoria/*.run.xml
+teoria/*.toc
+teoria/*.synctex.gz
+teoria/*.fdb_latexmk
+teoria/*.fls
 
 # Sistema operativo
 .DS_Store

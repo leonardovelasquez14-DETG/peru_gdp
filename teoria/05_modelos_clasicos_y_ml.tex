@@ -1,0 +1,97 @@
+\documentclass[12pt,letterpaper]{article}
+\usepackage{apa_manual}
+\apatituloCorto{Modelos clásicos y Machine Learning}
+
+\begin{document}
+
+\apacabecera
+  {Modelos clásicos de referencia y aprendizaje automático en revisiones del PBI}
+  {Manual teórico y práctico 5 — Fundamento de la Etapa 3}
+  {Para saber si una arquitectura cuántica realmente aporta valor, primero debemos medir qué tan bien predicen las herramientas estadísticas y de Machine Learning ya establecidas. Este documento explica qué hace cada modelo clásico de la Etapa~3, sus ecuaciones clave y la lección crítica que dejó el episodio del COVID-19.}
+
+\section{Por qué necesitamos una familia variada de referencias}
+
+En la Etapa~3 comparamos ocho especificaciones en estricto tiempo real (\(250\) pronósticos entre \codigo{2003m2} y \codigo{2024m11}), todas alimentadas únicamente con las \(20\) variables observables en \(v_0(t)\): la primera estimación \(y_0\), sus variaciones recientes, seis ramas sectoriales, tres rezagos anuales ya completados (\(Y_{t-11}, Y_{t-12}, Y_{t-13}\)), promedios móviles, revisiones tempranas de corto plazo y estacionalidad mensual. Cada familia responde a una pregunta distinta sobre la estructura de las revisiones.
+
+\subsection{Corrección de sesgo y modelos autorregresivos (AR / ARX)}
+
+Los tres puntos de partida más simples no utilizan covariables sectoriales ni aprendizaje complejo:
+\begin{itemize}
+  \item \textbf{Referencia nula (\codigo{Zero}):} predice siempre \(\widehat{Y}_t = 0\). Evalúa qué error se comete si el analista confía ciegamente en la primera publicación del BCRP.
+  \item \textbf{Corrección clásica (\codigo{BiasCorr\_Mean} y \codigo{BiasCorr\_Roll60}):} predice el promedio histórico de todas las revisiones pasadas ya terminadas (\(\widehat{Y}_t = \bar{Y}_{\text{train}}\)), o solo el de los últimos 60 meses para adaptarse si el sesgo bajó después de 2014.
+  \item \textbf{Modelos \codigo{AR\_BIC} y \codigo{ARX\_BIC}:} capturan la persistencia anual encontrada en la Etapa~2 usando los rezagos completados \(Y_{t-11}, \dots, Y_{t-10-p}\):
+\end{itemize}
+\begin{equation}
+  \widehat{Y}_t = \hat{\alpha} + \sum_{k=1}^{p} \hat{\phi}_k\, Y_{t-10-k} + \underbrace{\hat{\gamma}_1 y_{0,t} + \hat{\gamma}_2 \sin\!\left(\tfrac{2\pi m_t}{12}\right) + \hat{\gamma}_3 \cos\!\left(\tfrac{2\pi m_t}{12}\right)}_{\text{Solo en ARX}}.
+  \label{eq:ar_arx}
+\end{equation}
+El número de rezagos \(p \in \{1,2,3\}\) se elige automáticamente en cada mes mediante el criterio BIC para evitar incluir parámetros innecesarios; en la práctica, el \(99{,}2\%\) de las ventanas seleccionó \(p=2\) (rezagos 11 y 12).
+
+\subsection{Regresión Ridge y modelo de factores dinámicos (DFM-PCA)}
+
+Cuando metemos las \(20\) variables juntas en una regresión lineal ordinaria, muchos sectores suben o bajan al mismo tiempo (colinealidad) y los pesos \(\hat{\beta}\) pueden volverse inestables. La regresión \textbf{Ridge} (designada antes de la evaluación como nuestro benchmark clásico principal) resuelve ese problema agregando una penalización proporcional al tamaño cuadrático de los coeficientes:
+\begin{equation}
+  \hat{\beta}_{\text{Ridge}} = \arg\min_{\beta} \sum_{s \in \text{Train}} \bigl(Y_s - \bar{Y}_{\text{tr}} - \mathbf{x}_s^{\top}\beta\bigr)^2 + \lambda \sum_{j=1}^{20} \beta_j^2,
+  \label{eq:ridge}
+\end{equation}
+donde \(\lambda > 0\) controla cuánta contracción aplicamos hacia cero (escogido internamente sin mirar datos futuros). En períodos normales (\texttt{2003m2}--\texttt{2019m11}), Ridge logra el menor error de toda la competencia (\(\text{RMSE} = 0{,}503\)).
+
+Como alternativa parsimoniosa inspirada en la literatura de \emph{nowcasting} \parencite{giannone2008, banbura2011}, el modelo \textbf{DFM-PCA + Ridge} resume primero las seis ramas sectoriales (\codigo{agriculture}, \codigo{commerce}, \codigo{construction}, \codigo{fishing}, \codigo{manufacturing} y \codigo{mining}) en dos componentes principales que capturan el movimiento común de la economía, antes de aplicar la Ecuación~\ref{eq:ridge}.
+
+\subsection{Árboles impulsados por gradiente (GBDT / XGBoost)}
+
+Los modelos de \emph{Gradient Boosting} construyen la predicción sumando muchos árboles de decisión muy pequeños, donde cada árbol nuevo intenta corregir los errores residuales que dejaron los anteriores \parencite{friedman2001}:
+\begin{equation}
+  \widehat{Y}_t = F_0 + \nu \sum_{m=1}^{M} T_m(\mathbf{x}_t),
+  \label{eq:gbdt}
+\end{equation}
+siendo \(F_0\) la media inicial, \(\nu \in \{0{,}03;\, 0{,}06\}\) una tasa de aprendizaje que frena ajustes bruscos y \(T_m(\mathbf{x}_t)\) árboles de profundidad máxima \(1\) o \(2\) basados en cortes tipo \(x_{t,j} \le \text{umbral}\). Debido a que la librería C++ \codigo{xgboost} no se encontraba disponible en el entorno local del proyecto, implementamos una versión exacta y determinista en NumPy puro (\codigo{GBDT\_NumPy}).
+
+\section{La lección empírica clave: recta lineal frente a choque extremo}
+
+La comparación entre regímenes normales y el bloque congelado final (\texttt{2019m12}--\texttt{2024m11}, \(n=60\)) reveló un contraste sumamente instructivo que explica por qué el proyecto necesita evaluar arquitecturas no lineales acotadas.
+
+\begin{table}[htbp]
+  \caption{Desempeño real observado en la Etapa 3 según régimen histórico}
+  \label{tab:etapa3_resumen}
+  \centering
+  \begin{tabular}{@{}p{4.5cm}S[table-format=1.3]S[table-format=1.3]S[table-format=1.3]c@{}}
+    \toprule
+    & \multicolumn{2}{c}{Global (\(n=250\))} & \multicolumn{1}{c}{Pre-COVID (\(n=190\))} & \multicolumn{1}{c}{Bloque congelado (\(n=60\))} \\
+    \cmidrule(lr){2-3}\cmidrule(lr){4-4}\cmidrule(lr){5-5}
+    Modelo & {RMSE} & {MAE} & {RMSE} & {RMSE / \(R^2_{\text{OOS}}\)} \\
+    \midrule
+    Referencia nula (\(\widehat{Y}=0\)) & 0.574 & 0.396 & 0.602 & 0,474 \; (-0,682) \\
+    Corrección (media exp.) & 0.513 & 0.395 & 0.550 & 0,371 \; (-0,033) \\
+    AR(p) por BIC & 0.498 & 0.356 & 0.526 & 0,396 \; (-0,175) \\
+    Ridge (benchmark lineal) & 0.566 & 0.384 & {\textbf{0,503}} & 0,731 \; (-3,001) \\
+    DFM-PCA + Ridge & 0.605 & 0.392 & 0.515 & 0,827 \; (-4,125) \\
+    GBDT (NumPy, árboles) & {\textbf{0,495}} & {\textbf{0,356}} & 0.533 & \textbf{0,349 \; (+0,087)} \\
+    \bottomrule
+  \end{tabular}
+  \apanota{Datos verificados en \codigo{output/etapa3\_clasicos/etapa3\_metricas\_globales.csv} y \codigo{etapa3\_metricas\_subperiodos.csv}. Valores en negrita destacan el menor RMSE en cada columna.}
+\end{table}
+
+Como muestra la Tabla~\ref{tab:etapa3_resumen} y se visualiza directamente en la Figura~\ref{fig:ridge_gbdt_covid}, el problema de Ridge en 2020--2021 no ocurrió porque sus coeficientes fueran malos en tiempos normales, sino por una propiedad matemática inevitable de las ecuaciones lineales: \emph{siempre extrapolan en línea recta}. En tiempos normales el crecimiento inicial \(y_0\) oscila alrededor de \(0\%\) a \(+8\%\). Cuando llegó el confinamiento de abril de 2020 (\(y_0 = -40{,}5\%\)) y su rebote estadístico de abril de 2021 (\(y_0 = +58{,}5\%\)), Ridge multiplicó esas cifras descomunales por su pendiente lineal y pronosticó revisiones extremas de \(-1{,}46\) p.p. y \(+4{,}02\) p.p., cuando en realidad el BCRP solo revisó \(+1{,}40\) y \(+0{,}80\) p.p.
+
+\begin{figure}[htbp]
+  \caption{Extrapolación lineal de Ridge frente a saturación acotada de GBDT durante el choque COVID-19}
+  \label{fig:ridge_gbdt_covid}
+  \centering
+  \includegraphics[width=0.93\textwidth]{figuras/fig_ridge_vs_gbdt_covid.png}
+  \apanota{Construida a partir de \codigo{output/etapa3\_clasicos/etapa3\_predicciones\_oos.csv} entre 2018 y 2024.}
+\end{figure}
+
+Un árbol de decisión (\codigo{GBDT\_NumPy}), en cambio, divide el espacio mediante preguntas umbral como ``¿es \(y_0 > 6{,}5\%\)?''. Tanto para \(+8\%\) como para \(+58{,}5\%\) la respuesta cae en la misma hoja terminal acotada, por lo que su predicción se mantuvo en \(+0{,}91\) p.p. y alcanzó un \(R^2_{\text{OOS}}\) positivo de \(+0{,}087\) en el bloque congelado (Figura~\ref{fig:rmse_regimenes}). Esta constatación establece exactamente qué deberá demostrar un reservorio en la Etapa~4: mantener la fineza lineal de Ridge en años regulares sin desbordarse en crisis extremas.
+
+\begin{figure}[htbp]
+  \caption{Comparación de RMSE fuera de muestra entre regímenes y bloque congelado}
+  \label{fig:rmse_regimenes}
+  \centering
+  \includegraphics[width=0.94\textwidth]{figuras/etapa3_rmse_regimenes.png}
+  \apanota{Tomado de \codigo{output/etapa3\_clasicos/etapa3\_rmse\_regimenes.png}.}
+\end{figure}
+
+\apabibliografia
+
+\end{document}

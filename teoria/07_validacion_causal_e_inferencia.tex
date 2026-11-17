@@ -1,0 +1,102 @@
+\documentclass[12pt,letterpaper]{article}
+\usepackage{apa_manual}
+\apatituloCorto{Validación causal e inferencia estadística}
+
+\begin{document}
+
+\apacabecera
+  {Validación causal en tiempo real e inferencia estadística sin hacer trampa}
+  {Manual teórico y práctico 7 — Fundamento de las Etapas 5 y 8}
+  {En series de tiempo de revisiones es facilísimo cometer errores invisibles que inflan falsamente los resultados, como usar rezagos recientes cuya revisión todavía no termina o validar con particiones aleatorias. Este documento explica la regla de causalidad estricta implementada en \codigo{rtd\_eval\_utils.py} y las pruebas usadas para decidir qué modelo es mejor.}
+
+\section{La regla de oro para no mirar el futuro en revisiones}
+
+Supongamos que hoy estamos situados en junio de 2020 (\(v_0 = \texttt{2020-06}\)) y queremos predecir cuánto terminará revisándose el PBI de abril de 2020 (\(t = \texttt{2020m4}\)) once meses después. Aunque mayo de 2020 o enero de 2020 ya ocurrieron en el calendario, sus revisiones acumuladas a \(H = 11\) meses \emph{todavía no han terminado en junio de 2020} porque sus publicaciones finales \(v_{11}\) recién ocurrirán en 2021. Si entrenáramos un modelo con revisiones cuya ventana \(v_{11}\) cierra después de \(v_0(t)\), estaríamos filtrando información futura.
+
+Por esa razón, nuestra función \codigo{get\_causal\_train\_indices} en \codigo{scripts/rtd\_eval\_utils.py} impone la condición estricta de causalidad para todo mes candidato de entrenamiento \(s < t\):
+\begin{equation}
+  v_{11}(s) \le v_0(t),
+  \label{eq:regla_causal}
+\end{equation}
+como ilustra la línea de tiempo de la Figura~\ref{fig:linea_causal}. Dado que \(v_0(t) \approx t + 2\text{ meses}\) y \(v_{11}(s) \approx s + 13\text{ meses}\), la Ecuación~\ref{eq:regla_causal} exige \(s + 13 \le t + 2\), es decir, \(t - s \ge 11\). Ese es exactamente el motivo por el cual el primer rezago completado observable de \(Y^{(11)}\) es \codigo{Y\_lag11} (\(k=11\)), y nunca \(Y_{t-1}\) ni \(Y_{t-6}\).
+
+\begin{figure}[htbp]
+  \caption{Línea temporal causal que impide usar revisiones incompletas en el origen \(v_0(t)\)}
+  \label{fig:linea_causal}
+  \centering
+  \begin{tikzpicture}[font=\scriptsize, >=Stealth]
+    \draw[->, thick, apaSlate] (0,0) -- (13.2,0) node[right] {Calendario};
+    % Ticks
+    \foreach \x/\lbl in {0.8/2019m3, 3.3/2019m5, 5.8/2020m2, 8.3/2020m4, 10.6/2020m6, 12.6/2021m5} {
+      \draw (\x,0.12) -- (\x,-0.12);
+      \node[below=2pt] at (\x,-0.12) {\lbl};
+    }
+
+    % Ventana pasada valida s=2019m3
+    \draw[|-|, very thick, apaGreen] (3.3, 1.35) -- (8.3, 1.35)
+      node[midway, above=2pt, align=center] {Ventana completada de \codigo{2019m3}:\\ \(v_0=\text{2019m5} \longrightarrow v_{11}=\text{2020m4} \le v_0(t)\;\checkmark\)};
+
+    % Ventana incompleta pasada s=2020m2 (texto blanco opaco sobre linea azul)
+    \draw[|-|, very thick, apaAccent, dashed] (8.3, 0.72) -- (12.6, 0.72);
+    \node[above=2pt, fill=white, inner sep=1.5pt, text=apaAccent, align=center] at (7.45, 0.80)
+      {Ventana incompleta de \texttt{2020m2}: \(v_{11}\) cierra en 2021 \(\times\)};
+
+    % Linea vertical de origen v0(t) sin tapar texto
+    \draw[very thick, apaNavy] (10.6, 0.0) -- (10.6, 2.25)
+      node[above, align=center, font=\scriptsize\bfseries] {Fecha real de pronóstico\\ \(v_0(\texttt{2020m4}) = \texttt{2020-06}\)};
+    \fill[apaNavy] (10.6, 0.0) circle (2.2pt);
+  \end{tikzpicture}
+  \apanota{Representación de la regla \codigo{df["v\_H11\_date"] <= v0\_now} en \codigo{scripts/rtd\_eval\_utils.py}.}
+\end{figure}
+
+Adicionalmente, toda imputación de faltantes por mediana, estandarización (\(z\)-score), extracción de factores PCA y búsqueda de hiperparámetros (\(\lambda\), orden \(p\), profundidad de árboles) se ajusta únicamente dentro de la ventana de entrenamiento causal vigente antes de emitir la predicción para el origen \(t\). Al final de la muestra se reserva un bloque congelado de \(n=60\) meses (\texttt{2019m12}--\texttt{2024m11}) para evitar selección adaptativa ex post.
+
+\section{Métricas de evaluación y pruebas estadísticas de comparación}
+
+Con la secuencia real de pronósticos \(\{\widehat{Y}_t\}\) y errores \(e_t = Y_t^{(11)} - \widehat{Y}_t\), calculamos primero las métricas puntuales y el \(R^2\) fuera de muestra respecto al promedio histórico:
+\begin{equation}
+  \text{RMSE} = \sqrt{\frac{1}{N}\sum_{t=1}^{N} e_t^2}, \qquad R^2_{\text{OOS}} = 1 - \frac{\sum_{t=1}^{N}(Y_t - \widehat{Y}_t)^2}{\sum_{t=1}^{N}(Y_t - \bar{Y}_{\text{OOS}})^2}.
+  \label{eq:rmse_r2}
+\end{equation}
+Para evaluar si la diferencia de error frente al benchmark principal (\codigo{Ridge}) es estadísticamente significativa y no fruto de la suerte, utilizamos tres métodos complementarios de la Etapa~8 implementados en \codigo{rtd\_eval\_utils.py}:
+
+\begin{enumerate}
+  \item \textbf{Prueba Diebold--Mariano con ajuste HLN \parencite{diebold1995, harvey1997}:} compara el diferencial de pérdida \(d_t = L(e_{t,\text{modelo}}) - L(e_{t,\text{bench}})\). Si \(\bar{d} < 0\), el modelo pierde menos que el referente. Dividimos \(\bar{d}\) por su error estándar robusto Newey--West y aplicamos el factor corrector de muestra finita para horizonte \(H\) de Harvey--Leybourne--Newbold.
+  \item \textbf{Prueba de Clark--West para modelos anidados \parencite{clark2007}:} cuando un modelo grande contiene exactamente a uno pequeño más variables adicionales, el modelo grande paga un costo de varianza al estimar coeficientes adicionales (aunque su valor real sea cercano a cero). Clark--West ajusta esa penalización sumando \((\widehat{Y}_{\text{pequeño}} - \widehat{Y}_{\text{grande}})^2\):
+\end{enumerate}
+\begin{equation}
+  f_t = e_{t,\text{pequeño}}^2 - \left[ e_{t,\text{grande}}^2 - (\widehat{Y}_{t,\text{pequeño}} - \widehat{Y}_{t,\text{grande}})^2 \right].
+  \label{eq:clark_west}
+\end{equation}
+\textit{Cautela práctica observada en el Perú:} durante choques extremos como el COVID-19, si un modelo grande extrapola mal (por ejemplo \codigo{Ridge} en abril 2021), la diferencia al cuadrado \((\widehat{Y}_{\text{media}} - \widehat{Y}_{\text{Ridge}})^2\) crece desmesuradamente e infla el estadístico CW (\(3{,}554\)) aun cuando el RMSE crudo haya empeorado. Por eso nunca leemos CW aislado sin revisar antes el gráfico acumulado de pérdida cuadrada (Figura~\ref{fig:cum_se}).
+\begin{enumerate}
+  \setcounter{enumi}{2}
+  \item \textbf{Bootstrap circular por bloques (\(L=12\), \(B=2000\)):} en lugar de reordenar meses individuales al azar —lo cual destruiría la autocorrelación anual de las revisiones—, sorteamos bloques completos de \(12\) meses consecutivos para construir el intervalo de confianza al \(95\%\) de \(\text{RMSE}_{\text{modelo}} - \text{RMSE}_{\text{bench}}\). Si todo el intervalo cae por debajo de cero, existe evidencia robusta de mejora.
+\end{enumerate}
+
+\begin{figure}[htbp]
+  \caption{Trayectoria acumulada de pérdida cuadrada relativa frente a Ridge (Etapas 3 y 5)}
+  \label{fig:cum_se}
+  \centering
+  \includegraphics[width=0.93\textwidth]{figuras/etapa3_oos_predicciones.png}
+  \apanota{Tomado de \codigo{output/etapa3\_clasicos/etapa3\_oos\_predicciones.png}. Valores ascendentes en el panel inferior indican que Ridge supera al competidor; la caída vertical en 2020--2021 revela exactamente el costo puntual del choque COVID.}
+\end{figure}
+
+\begin{lstlisting}[language=Python, caption={Uso directo de las utilidades causales compartidas para nuevos modelos (Etapa 4)}]
+from pathlib import Path
+import scripts.rtd_eval_utils as u
+
+# 1. Construir matriz causal con 20 predictores observables en v0(t)
+df = u.build_realtime_feature_table(Path("output/analysis_output"))
+
+# 2. Para cualquier origen t (p. ej. indice 100 = 2003m2), obtener entrenamiento sin fuga
+tr_idx = u.get_causal_train_indices(df, eval_idx=100)
+X_tr, X_te = u.fit_impute_and_scale(
+    df.loc[tr_idx, u.FEATURE_COLS].to_numpy(),
+    df.loc[[100], u.FEATURE_COLS].to_numpy()
+)
+\end{lstlisting}
+
+\apabibliografia
+
+\end{document}

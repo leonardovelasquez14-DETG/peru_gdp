@@ -1,0 +1,80 @@
+\documentclass[12pt,letterpaper]{article}
+\usepackage{apa_manual}
+\apatituloCorto{Teoría econométrica de las revisiones}
+
+\begin{document}
+
+\apacabecera
+  {Econometría de las revisiones del PBI: noticias, ruido, sesgo y no linealidad}
+  {Manual teórico y práctico 4 — Fundamento de las Etapas 1 y 2}
+  {Antes de entrenar modelos complejos o computación cuántica debemos responder una pregunta económica básica: ¿las correcciones que hace el BCRP tienen algún patrón sistemático o son simplemente sorpresas imposibles de anticipar? Este manual resume las herramientas econométricas usadas en las Etapas~1 y~2 para demostrar que sí existe estructura predecible en el PBI peruano.}
+
+\section{La disyuntiva central: ¿noticias nuevas o error inicial?}
+
+Cuando una estadística oficial cambia entre su primera estimación \(y_t^{(v_0)}\) y su valor revisado \(y_t^{(v_H)}\), \textcite{mankiw1986} demostraron que existen dos mecanismos opuestos posibles, con consecuencias totalmente distintas para nuestro trabajo:
+\begin{enumerate}
+  \item \textbf{Hipótesis de Noticias (\emph{News}):} la entidad estadística publica su mejor pronóstico racional con los datos disponibles en \(v_0\). Las revisiones futuras \(Y_t^{(H)} = y_t^{(v_H)} - y_t^{(v_0)}\) responden solo a encuestas o registros que aún no existían en \(v_0\). Por definición, si todo cambio fuera pura noticia impredecible, se cumpliría \(\mathbb{E}[Y_t^{(H)} \mid \Omega_{v_0(t)}] = 0\) y ningún algoritmo podría mejorar el pronóstico cero.
+  \item \textbf{Hipótesis de Ruido o Sesgo Sistemático (\emph{Noise}):} las primeras publicaciones incorporan errores de medición, sesgos conservadores recurrentes o rezagos de ajuste que sí guardan relación con información ya observable en el momento \(v_0(t)\). En este escenario, los modelos predictivos sí pueden anticipar parte de \(Y_t^{(H)}\) \parencite{croushore2011}.
+\end{enumerate}
+
+\section{Elección del horizonte limpio y diagnóstico básico}
+
+En la Etapa~1 descubrimos una restricción empírica crucial: si fijamos un horizonte de un año calendario exacto (\(H = 12\) meses desde la primera publicación), el calendario móvil de las Notas Semanales genera \(18\) huecos internos (por ejemplo, todos los meses de diciembre entre 2018 y 2023), dejando \(331\) observaciones limpias. En cambio, al elegir el horizonte continuo \(H = 11\) meses y excluir los \(24\) períodos que cruzan los cambios de año base de \codigo{2000m7} y \codigo{2014m3}, obtenemos una serie continua sin huecos internos de \(n = 350\) revisiones limpias.
+
+Para comprobar si el sesgo medio \(\mu_Y = \mathbb{E}[Y_t^{(11)}]\) es distinto de cero, no basta con calcular la desviación estándar clásica dividida entre \(\sqrt{n}\). Como la revisión de un mes tarda 11 meses en completarse, los errores de meses consecutivos se traslapan temporalmente y presentan autocorrelación. Por eso calculamos errores estándar consistentes ante heterocedasticidad y autocorrelación (HAC) propuestos por \textcite{newey1987}:
+\begin{equation}
+  \widehat{V}_{\text{NW}}(\bar{Y}) = \frac{1}{n}\left[ \hat{\gamma}_0 + 2 \sum_{j=1}^{L} \left(1 - \frac{j}{L+1}\right)\hat{\gamma}_j \right],
+  \label{eq:nw}
+\end{equation}
+donde \(\hat{\gamma}_j\) es la autocovarianza muestral de orden \(j\) y \(L\) controla cuántos meses de dependencia se ponderan (evaluamos tanto \(L_{\text{NW}} = 5\) como la ventana amplia \(L = H = 11\)). En la Figura~\ref{fig:hist_etapa2} se aprecia cómo la distribución real de \(Y_t^{(11)}\) no está centrada en cero, sino desplazada claramente hacia la derecha (\(+0{,}347\) p.p., \(p = 5{,}3\times 10^{-8}\)).
+
+\begin{figure}[htbp]
+  \caption{Distribución empírica de las revisiones limpias del PBI a horizonte \(H=11\) meses}
+  \label{fig:hist_etapa2}
+  \centering
+  \includegraphics[width=0.86\textwidth]{figuras/hist_revisiones_gdp.png}
+  \apanota{Resultado verificado en la Etapa 1/2 (\codigo{output/etapa2\_econometria/}). La media positiva refleja que las primeras publicaciones subestiman sistemáticamente el crecimiento posterior.}
+\end{figure}
+
+\section{Eficiencia de Mincer--Zarnowitz y detección de no linealidad}
+
+Para verificar si la primera estimación aprovecha eficientemente la información disponible, estimamos la regresión clásica de \textcite{mincer1969}:
+\begin{equation}
+  y_t^{(v_{11})} = \alpha + \beta\, y_t^{(v_0)} + \varepsilon_t,
+  \label{eq:mz}
+\end{equation}
+bajo la hipótesis nula conjunta de eficiencia racional \(H_0: \alpha = 0,\; \beta = 1\). Si \(\hat{\alpha} \neq 0\), existe un sesgo constante corregible; si \(\hat{\beta} < 1\), las cifras iniciales extremas tienden a revertirse parcialmente hacia la media en revisiones posteriores.
+
+Al mismo tiempo, para saber si una línea recta basta o si existen efectos curvos que justifiquen modelos no lineales (como árboles de decisión o reservorios cuánticos), aplicamos la prueba RESET de \textcite{ramsey1969}. Esta prueba agrega potencias de los valores ajustados \((\hat{y}_t^2, \hat{y}_t^3)\) a la regresión lineal y evalúa si aportan poder explicativo significativo.
+
+\begin{table}[htbp]
+  \caption{Resumen de hallazgos econométricos de la Etapa 2 sobre \(Y_t^{(11)}\) (\(n=350\))}
+  \label{tab:hallazgos_etapa2}
+  \centering
+  \begin{tabular}{@{}p{4.6cm}p{3.0cm}p{6.9cm}@{}}
+    \toprule
+    Propiedad evaluada & Resultado observado & Lectura práctica para el modelado \\
+    \midrule
+    Media global (\(H=11\)) & \(+0{,}347\) p.p. (\(p < 10^{-7}\)) & Rechaza ruido cero; existe sesgo positivo sistemático. \\
+    Colas y simetría & Curtosis exc. \(6{,}293\) & Hay revisiones grandes esporádicas; el RMSE castiga fuerte los extremos. \\
+    Persistencia en tiempo real & \(\hat{\rho}_{12} = +0{,}386\) & El error de revisión de hace 12 meses ayuda a predecir el de hoy. \\
+    Mincer--Zarnowitz & Wald \(F = 16{,}23\) (\(p<10^{-6}\)) & Rechaza eficiencia por sesgo constante (\(\hat{\alpha} = +0{,}360\)). \\
+    Prueba RESET (linealidad) & Global \(p = 0{,}00096\) & Significativa solo en 2020--2024 (\(p=0{,}00030\)); lineal antes de 2020. \\
+    \bottomrule
+  \end{tabular}
+  \apanota{Cifras consolidadas de \codigo{output/etapa2\_econometria/etapa2\_descriptivos\_horizontes.csv}, \codigo{etapa2\_mincer\_zarnowitz.csv} y \codigo{etapa2\_regimenes\_y11.csv}.}
+\end{table}
+
+Como resume la Tabla~\ref{tab:hallazgos_etapa2} y se observa en la evolución temporal de la Figura~\ref{fig:regimenes_etapa2}, las revisiones disminuyen en volatilidad tras el cambio de año base de 2014 y muestran comportamiento lineal hasta 2019, pero rompen la linealidad durante el choque pandémico de 2020--2024. Este hallazgo anticipa exactamente lo que comprobamos después al comparar modelos predictivos fuera de muestra.
+
+\begin{figure}[htbp]
+  \caption{Evolución por regímenes de las revisiones limpias \(Y_t^{(11)}\) (1993--2024)}
+  \label{fig:regimenes_etapa2}
+  \centering
+  \includegraphics[width=0.92\textwidth]{figuras/etapa2_regimenes_evolucion.png}
+  \apanota{Salida directa de \codigo{scripts/etapa2\_caracterizacion\_econometrica.py}. Se distingue la caída de volatilidad pos-2014 y el episodio COVID-19.}
+\end{figure}
+
+\apabibliografia
+
+\end{document}

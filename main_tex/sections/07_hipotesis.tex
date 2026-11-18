@@ -25,11 +25,11 @@ La incorporación de una representación temporal generada por un modelo QRC mej
 
 \subsection{Expresión funcional de las variables}
 
-La variable dependiente principal es la revisión a horizonte fijo:
+La variable dependiente principal fue la revisión a horizonte fijo:
 \[
 Y_t^{(H)}=y_t^{(v_H(t))}-y_t^{(v_0(t))}.
 \]
-Las variables explicativas serán exclusivamente las observables en el origen \(v_0(t)\): primera estimación publicada, revisiones anteriores de períodos ya observados, indicadores macroeconómicos con fecha de publicación conocida y variables calendario documentadas. La lista final se cerrará después de auditar el dataset y antes de estimar los modelos.
+Las variables explicativas fueron exclusivamente aquellas estrictamente observables en el origen \(v_0(t)\): la primera estimación publicada, las revisiones completadas de períodos previos en o antes de \(v_0(t)\), las tasas iniciales y revisiones rezagadas de las ramas productivas continuas, y las variables calendario documentadas. La especificación del vector de predictores quedó cerrada tras auditar la disponibilidad histórica de la base y antes de estimar los modelos predictivos.
 
 \begin{table}[htbp]
 	\centering
@@ -39,12 +39,12 @@ Las variables explicativas serán exclusivamente las observables en el origen \(
 	\renewcommand{\arraystretch}{1.15}
 	\begin{tabular}{@{}>{\raggedright\arraybackslash}p{3.1cm}>{\raggedright\arraybackslash}p{2.3cm}>{\raggedright\arraybackslash}p{6.1cm}>{\raggedright\arraybackslash}p{2.5cm}@{}}
 		\toprule
-		Variable & Tipo & Definición operacional & Fuente prevista\\
+		Variable & Tipo & Definición operacional & Fuente auditada\\
 		\midrule
-		Revisión a horizonte \(H\) & Dependiente & Diferencia entre la publicación a horizonte fijo y la primera publicación del mismo período & Vintages oficiales o dataset documentado\\
-		Primera estimación & Explicativa & Primera tasa de crecimiento publicada para el período & INEI / archivo vintage auditado\\
-		Revisiones históricas & Explicativa & Revisiones de períodos anteriores conocidas en el origen & Archivo vintage\\
-		Indicadores de actividad & Explicativa & Indicadores publicados antes del origen, si están disponibles & INEI, BCRP y fuentes oficiales\\
+		Revisión a horizonte \(H\) & Dependiente & Diferencia entre la publicación a horizonte fijo y la primera publicación del mismo período & Vintages auditados del PBI\\
+		Primera estimación & Explicativa & Primera tasa de crecimiento publicada para el período & Archivo vintage BCRP\\
+		Revisiones históricas & Explicativa & Revisiones de períodos anteriores completadas y observables en el origen & Archivo vintage auditado\\
+		Indicadores sectoriales & Explicativa & Primeras publicaciones y rezagos de ramas productivas disponibles en cada origen & Archivo vintage sectorial\\
 		Calendario de publicación & Control & Mes, trimestre y distancia temporal desde la primera publicación & Metadatos de releases\\
 		\bottomrule
 	\end{tabular}

@@ -1,0 +1,181 @@
+{
+  "n_oos": 250,
+  "seeds": [
+    101,
+    202,
+    303,
+    404,
+    505
+  ],
+  "qrc_spec": {
+    "qubits": 5,
+    "hilbert_dim": 32,
+    "observables_m": 20,
+    "encoding": "RZ(phi) RY(theta) |0> con angulos acotados pi/2 tanh(alpha W_enc x)",
+    "hamiltonian": "Ising transversal desordenado fijo (dt=1.0) + canal CPTP fading memory",
+    "alpha_grid": [
+      0.4,
+      0.8
+    ],
+    "eps_grid": [
+      0.35,
+      0.7
+    ],
+    "ridge_grid": [
+      0.5,
+      1.0,
+      2.0,
+      5.0,
+      10.0,
+      25.0,
+      50.0,
+      100.0,
+      250.0,
+      500.0
+    ]
+  },
+  "global_metrics": [
+    {
+      "modelo": "Zero",
+      "label_es": "Referencia nula ($\\widehat{Y}=0$)",
+      "n": 250,
+      "rmse": 0.5739686402583333,
+      "mae": 0.3959999999999999,
+      "med_ae": 0.2000000000000005,
+      "sesgo_medio": 0.2919999999999999,
+      "r2_oos": -0.3491907476574276
+    },
+    {
+      "modelo": "BiasCorr_Mean",
+      "label_es": "Corrección clásica (media expansiva)",
+      "n": 250,
+      "rmse": 0.5128021882538978,
+      "mae": 0.3950965103443966,
+      "med_ae": 0.2810359589041097,
+      "sesgo_medio": -0.1310307248625733,
+      "r2_oos": -0.0769530350156693
+    },
+    {
+      "modelo": "BiasCorr_Roll60",
+      "label_es": "Corrección clásica (media móvil 60m)",
+      "n": 250,
+      "rmse": 0.5246211966743242,
+      "mae": 0.3805866666666666,
+      "med_ae": 0.2816666666666666,
+      "sesgo_medio": 0.0206666666666666,
+      "r2_oos": -0.127168108249787
+    },
+    {
+      "modelo": "AR_BIC",
+      "label_es": "AR(p) observable (BIC)",
+      "n": 250,
+      "rmse": 0.4981853865085816,
+      "mae": 0.3560342704913656,
+      "med_ae": 0.2369977594348352,
+      "sesgo_medio": -0.0370633592846476,
+      "r2_oos": -0.0164335533824164
+    },
+    {
+      "modelo": "ARX_BIC",
+      "label_es": "ARX(p) observable (BIC)",
+      "n": 250,
+      "rmse": 0.5582467331434918,
+      "mae": 0.3841356709705691,
+      "med_ae": 0.2516742836432445,
+      "sesgo_medio": -0.0154148279670165,
+      "r2_oos": -0.2762901147753303
+    },
+    {
+      "modelo": "Ridge",
+      "label_es": "Ridge (benchmark clásico)",
+      "n": 250,
+      "rmse": 0.5660399183249306,
+      "mae": 0.3844598383021733,
+      "med_ae": 0.2616510094386863,
+      "sesgo_medio": -0.0639073317098724,
+      "r2_oos": -0.3121731420667639
+    },
+    {
+      "modelo": "DFM_Factor_Ridge",
+      "label_es": "Factor DFM-PCA + Ridge",
+      "n": 250,
+      "rmse": 0.6047846920654256,
+      "mae": 0.3924571069334533,
+      "med_ae": 0.2496765488922121,
+      "sesgo_medio": -0.067110376868312,
+      "r2_oos": -0.497954441700543
+    },
+    {
+      "modelo": "GBDT_NumPy",
+      "label_es": "GBDT (NumPy, árboles acotados)",
+      "n": 250,
+      "rmse": 0.4949893272173897,
+      "mae": 0.3562101216629397,
+      "med_ae": 0.2467427897073541,
+      "sesgo_medio": -0.0678013285378531,
+      "r2_oos": -0.0034337283726662
+    },
+    {
+      "modelo": "RFF_20",
+      "label_es": "RFF (20 car. aleatorias, sin memoria)",
+      "n": 250,
+      "rmse": 0.45589508653994054,
+      "mae": 0.33449392014276924,
+      "med_ae": 0.24028093641060888,
+      "sesgo_medio": -0.06900374735519589,
+      "r2_oos": 0.14880934272303625
+    },
+    {
+      "modelo": "ESN_20",
+      "label_es": "ESN clasica (20 neuronas)",
+      "n": 250,
+      "rmse": 0.4720621959425665,
+      "mae": 0.3410826200066915,
+      "med_ae": 0.24819063810085298,
+      "sesgo_medio": -0.057390246749406675,
+      "r2_oos": 0.08736846848945823
+    },
+    {
+      "modelo": "ESN_64",
+      "label_es": "ESN clasica ampliada (64 neuronas)",
+      "n": 250,
+      "rmse": 0.5078225817384066,
+      "mae": 0.3789406441678135,
+      "med_ae": 0.2704213320555392,
+      "sesgo_medio": -0.038410722515793104,
+      "r2_oos": -0.0561389101445704
+    },
+    {
+      "modelo": "QRC_Ising5",
+      "label_es": "QRC Ising (5 qubits, 20 obs.)",
+      "n": 250,
+      "rmse": 0.4783782081198503,
+      "mae": 0.3515591167577439,
+      "med_ae": 0.2577079478448939,
+      "sesgo_medio": -0.10220153519633429,
+      "r2_oos": 0.06278377070654417
+    }
+  ],
+  "timing": [
+    {
+      "seed": 101,
+      "elapsed_sec": 70.83747415900143
+    },
+    {
+      "seed": 202,
+      "elapsed_sec": 69.2660319079987
+    },
+    {
+      "seed": 303,
+      "elapsed_sec": 69.45657728400329
+    },
+    {
+      "seed": 404,
+      "elapsed_sec": 69.74550250399989
+    },
+    {
+      "seed": 505,
+      "elapsed_sec": 70.92274652199922
+    }
+  ]
+}

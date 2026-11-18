@@ -1,16 +1,16 @@
 % ============================================================================
 \section{Resultados}
 
-\textbf{Nota de integridad académica.} Este documento integra el diseño de la investigación junto con la ejecución reproducible de la \textbf{Etapa~1} (auditoría de vintages, subsecciones~\ref{subsec:auditoria_preliminar} y~\ref{subsec:descriptivos}), la \textbf{Etapa~2} (caracterización econométrica, subsección~\ref{subsec:econometria}) y las \textbf{Etapas~3 y~5} (modelos de referencia clásicos en validación expansiva causal en tiempo real con inferencia de Etapa~8 sobre referentes clásicos, subsección~\ref{subsec:desempeno_modelos}). Las arquitecturas de reservorio (ESN y QRC), las pruebas sintéticas y los controles de capacidad (Etapas~4, 6 y~7) aún no se estiman, de modo que sus filas permanecen explícitamente marcadas como pendientes sin cifras inventadas. Se deja asimismo constancia transparente de que el entorno Python disponible carece del paquete binario \texttt{xgboost}, por lo que el modelo de árboles impulsados se implementó de forma exacta y reproducible en NumPy puro (\archivo{GBDT\_NumPy}).
+Los resultados siguen el orden lógico de la investigación: auditoría del archivo histórico, descripción estadística y análisis econométrico a horizonte fijo, desempeño fuera de muestra de modelos clásicos y reservorios, simulación sintética calibrada junto con potencia estadística, verificación de la regla económica condicionada e inferencia comparativa múltiple. Por disponibilidad de paquetes en el entorno de cálculo, los árboles potenciados (GBDT) se estimaron mediante árboles CART acotados y el reservorio cuántico (QRC) mediante simulación exacta de cinco qubits sin ruido físico.
 
 \subsection{Resultado de la auditoría de datos}
 \label{subsec:auditoria_preliminar}
 
-La Tabla~\ref{tab:auditoria} resume el resultado de la Etapa~1 tras ejecutar \archivo{scripts/etapa1_auditoria_vintages.py} sobre el repositorio completo (\archivo{monthly_gdp_vintages.csv}, \archivo{monthly_gdp_vintages_adjusted.csv}, \archivo{monthly_gdp_vintages_benchmark.csv} y \archivo{wr_metadata.csv}).
+La Tabla~\ref{tab:auditoria} resume los hallazgos tras auditar la base histórica del BCRP compilada por \textcite{cruz2025}.
 
 \begin{table}[htbp]
 	\centering
-	\caption{Auditoría de datos: resultados verificados de la Etapa~1}
+	\caption{Auditoría de datos: resultados verificados del archivo histórico}
 	\label{tab:auditoria}
 	\footnotesize
 	\renewcommand{\arraystretch}{1.15}
@@ -18,41 +18,42 @@ La Tabla~\ref{tab:auditoria} resume el resultado de la Etapa~1 tras ejecutar \ar
 		\toprule
 		Indicador de auditoría & Valor & Estado / evidencia\\
 		\midrule
-		Observaciones industria--vintage & 44\,307 & Verificado (\texttt{vintages\_long.csv})\\
-		Industrias identificadas & 9 & Verificado (cobertura desigual)\\
+		Observaciones industria--vintage & 44\,307 & Verificado en tabla consolidada\\
+		Industrias identificadas & 9 & Verificado (cobertura sectorial desigual)\\
 		Rango de vintages (continuo) & 1994-01 a 2025-12 & Verificado (384 meses sin faltantes en PBI)\\
 		Rango de períodos objetivo & 1992-01 a 2025-10 & Verificado (406 meses)\\
 		Períodos PBI limpios a \(H=11\) & 350 (374 brutos) & Verificado; 0 huecos internos (1993-10 a 2024-11)\\
 		Períodos PBI limpios a \(H=12\) & 331 (355 brutos) & Verificado; 18 huecos internos (diciembres 2018--2023 y 2015--2016)\\
-		Excluidos a \(H=11\) (limpio) & 56 & 21 sin \(v_0\) + 11 fin de muestra + 24 cruce año base\\
-		Granularidad de fechas & Mensual (\texttt{YYYYmM}) & Pseudo-tiempo-real; sin día calendario en \texttt{wr\_metadata.csv}\\
-		Sectores con cobertura completa & 6 de 9 & \texttt{services} (1997-07), \texttt{electricity} (2003-05), \texttt{mining} omite 9 vintages (2018m8--2019m4)\\
-		Duplicados y fuga temporal & Resuelto (0 fugas) & 3\,131 filas repetidas depuradas; 0 celdas con \(t > v\)\\
+		Excluidos a \(H=11\) (limpio) & 56 & 21 sin primera publicación oportuna + 11 fin de muestra + 24 cruce de año base\\
+		Granularidad de fechas & Mensual & Aproximación mensual al tiempo real (sin día exacto)\\
+		Sectores con cobertura completa & 6 de 9 & Servicios desde 1997-07; electricidad desde 2003-05; minería omite 9 meses (2018--2019)\\
+		Duplicados y fuga temporal & Resuelto (0 fugas) & 3\,131 filas repetidas depuradas; 0 celdas adelantadas\\
 		\bottomrule
 	\end{tabular}
-	\fuente{elaboración propia a partir de \texttt{scripts/etapa1\_auditoria\_vintages.py}.}
+	\fuente{elaboración propia a partir del repositorio histórico del BCRP \parencite{cruz2025}.}
 \end{table}
 
-La Figura~\ref{fig:triangulo} ilustra la trayectoria de las revisiones acumuladas desde la primera publicación \(v_0\) hasta \(h=12\) meses después, evidenciando tanto los saltos estructurales alrededor de los cambios de año base (2000m7 y 2014m3) como los huecos en el extremo \(h=12\) que justifican emplear \(H=11\) como horizonte anual continuo principal y \(H=12\), \(6\) y \(3\) como análisis de sensibilidad.
+La Figura~\ref{fig:triangulo} ilustra la evolución de las revisiones acumuladas desde la primera cifra difundida (\(v_0\)) hasta doce meses después. En ella se aprecian tanto los saltos provocados por los cambios de año base (julio de 2000 y marzo de 2014) como los vacíos internos en \(h=12\), lo que justifica emplear \(H=11\) como horizonte anual continuo principal y conservar \(H=12\), \(6\) y \(3\) para evaluar sensibilidad.
 
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=0.92\textwidth]{images/triangulo_gdp.png}
 	\caption{Evolución de las revisiones acumuladas del PBI mensual desde la primera publicación \(v_0\) (2000--2025)}
 	\label{fig:triangulo}
-	\fuente{elaboración propia a partir de \texttt{monthly\_gdp\_vintages.csv}.}
+	\fuente{elaboración propia a partir de los registros históricos del BCRP.}
 \end{figure}
 
 \subsection{Caracterización descriptiva de las revisiones a horizonte fijo}
 \label{subsec:descriptivos}
 
-La Tabla~\ref{tab:descriptivos_revision} presenta los estadísticos descriptivos de la revisión definida de manera consistente con la Ecuación~\ref{eq:target} (\(Y_t^{(H)} = y_t^{(v_H)} - y_t^{(v_0)}\)), comparando el horizonte continuo principal \(H=11\) (muestra limpia y bruta) frente al horizonte nominal de cuatro trimestres \(H=12\) y los horizontes de sensibilidad \(H=6\) y \(H=3\). De manera complementaria, se incluye como referencia la serie a horizonte variable \texttt{last} menos \texttt{first} sobre los 406 períodos (equivalente con signo opuesto al \(-0{,}256\) reportado antes de corregir la convención de signos; véase el Anexo~\ref{app:objetivo}).
+La Tabla~\ref{tab:descriptivos_revision} presenta los estadísticos descriptivos de la revisión definida según la Ecuación~\ref{eq:target} (\(Y_t^{(H)} = y_t^{(v_H)} - y_t^{(v_0)}\)), comparando el horizonte principal \(H=11\) frente a \(H=12\), \(6\) y \(3\) meses. También se incluye como referencia la serie de horizonte variable (\textit{última menos primera publicación}) sobre los \(406\) períodos totales, equivalente con signo opuesto al \(-0{,}256\) calculado en la lectura preliminar inicial (véase el Anexo~\ref{app:objetivo}).
 
 \begin{table}[htbp]
 	\centering
 	\caption{Estadísticos descriptivos de la revisión del PBI (\(y_t^{(v_H)} - y_t^{(v_0)}\)) según horizonte y depuración}
 	\label{tab:descriptivos_revision}
 	\footnotesize
+	\setlength{\tabcolsep}{4.5pt}
 	\renewcommand{\arraystretch}{1.15}
 	\begin{tabular}{@{}l S[table-format=3.0] S[table-format=-1.3] S[table-format=1.3] S[table-format=-1.3] S[table-format=-1.3] S[table-format=-1.3] S[table-format=-1.3] S[table-format=1.3]@{}}
 		\toprule
@@ -63,15 +64,15 @@ La Tabla~\ref{tab:descriptivos_revision} presenta los estadísticos descriptivos
 		\(H=12\) limpio (sensibilidad) & 331 & 0.363 & 0.798 & -2.000 & 0.000 & 0.200 & 0.700 & 4.900\\
 		\(H=6\) limpio (sensibilidad) & 355 & 0.311 & 0.598 & -2.000 & 0.000 & 0.200 & 0.500 & 4.000\\
 		\(H=3\) limpio (sensibilidad) & 358 & 0.205 & 0.452 & -1.500 & 0.000 & 0.100 & 0.300 & 2.500\\
-		Variable (\texttt{last} \(-\) \texttt{first}) & 406 & 0.256 & 0.930 & -5.500 & 0.000 & 0.200 & 0.600 & 4.200\\
+		Horizonte variable (última \(-\) primera) & 406 & 0.256 & 0.930 & -5.500 & 0.000 & 0.200 & 0.600 & 4.200\\
 		\bottomrule
 	\end{tabular}
-	\fuente{elaboración propia a partir de \texttt{muestra\_objetivo\_gdp.csv} y \texttt{resumen\_horizontes\_gdp.csv}.}
+	\fuente{elaboración propia a partir de la muestra depurada de publicaciones del BCRP.}
 \end{table}
 
-En todos los horizontes comparables, la revisión media \(y_t^{(v_H)} - y_t^{(v_0)}\) es positiva (\(+0{,}347\) p.p. a \(H=11\) y \(+0{,}363\) p.p. a \(H=12\) en muestras limpias), lo que indica que, en promedio, la primera estimación disponible tiende a ubicarse \emph{por debajo} de la estimación revisada posteriormente. Asimismo, la exclusión de los 24 períodos que cruzan cambios de año base reduce sustancialmente los extremos negativos (de \(-5{,}500\) a \(-2{,}000\) p.p.) y disminuye la desviación estándar (de \(0{,}930\) a \(0{,}768\)), confirmando que los valores extremos negativos en la base bruta obedecían a empalmes metodológicos y no a revisiones estadísticas ordinarias. El retraso de publicación se concentró en dos meses (media \(2{,}003\), desviación estándar \(0{,}051\), mínimo \(2\), máximo \(3\), \(n=384\)), lo que confirma que el calendario mensual es prácticamente determinista.
+En todos los horizontes comparables, la revisión media es positiva (\(+0{,}347\) p.p. a \(H=11\) y \(+0{,}363\) p.p. a \(H=12\)), lo que confirma que la primera cifra difundida suele ubicarse \emph{por debajo} de la estimación corregida posteriormente. Asimismo, excluir los \(24\) períodos afectados por cambios de año base reduce los extremos negativos (de \(-5{,}500\) a \(-2{,}000\) p.p.) y baja la desviación estándar de \(0{,}930\) a \(0{,}768\), mostrando que los saltos negativos pronunciados correspondían a empalmes metodológicos y no a revisiones estadísticas ordinarias. Por su parte, el retraso de publicación se mantuvo casi constante en dos meses (media \(2{,}003\), desviación estándar \(0{,}051\), rango de \(2\) a \(3\) en \(n=384\)).
 
-Las Figuras~\ref{fig:scatter}, \ref{fig:hist} y \ref{fig:horizontes} documentan, respectivamente, la relación entre \(y_t^{(v_0)}\) y \(y_t^{(v_{11})}\), la distribución empírica de \(Y_t^{(11)}\) distinguiendo las observaciones afectadas por cambios de base, y la sensibilidad de cobertura y dispersión entre \(H=3\) y \(H=18\) (donde \(H=18\) cae a 5 observaciones y \(H=24\) a 0).
+Las Figuras~\ref{fig:scatter}, \ref{fig:hist} y \ref{fig:horizontes} presentan, respectivamente, la relación entre \(y_t^{(v_0)}\) y \(y_t^{(v_{11})}\), la distribución empírica de las revisiones distinguiendo cambios de base y la variación de cobertura entre \(H=3\) y \(H=18\) (donde la muestra cae a \(5\) observaciones y a \(0\) en \(H=24\)).
 
 \begin{figure}[htbp]
 	\centering
@@ -97,13 +98,13 @@ Las Figuras~\ref{fig:scatter}, \ref{fig:hist} y \ref{fig:horizontes} documentan,
 	\fuente{elaboración propia.}
 \end{figure}
 
-\subsection{Caracterización econométrica de las revisiones (Etapa~2)}
+\subsection{Caracterización econométrica de las revisiones}
 \label{subsec:econometria}
 
-La Etapa~2 se ejecutó de manera reproducible mediante \archivo{scripts/etapa2_caracterizacion_econometrica.py} sobre las muestras depuradas de la Etapa~1, conservando los resultados en \archivo{output/etapa2_econometria/}. Conforme al diseño metodológico, los errores estándar HAC/Newey--West se calcularon tanto con la regla automática \(L_{\text{NW}} = \lfloor 4(T/100)^{2/9} \rfloor\) (\(L_{\text{NW}}=5\) para \(T\approx 350\)) como con una ventana ampliada \(L = H\) para controlar posible solapamiento temporal hasta el horizonte de revisión.
+El análisis econométrico se realizó sobre las muestras depuradas empleando errores estándar robustos a heterocedasticidad y autocorrelación \parencite{newey1987}, tanto con la ventana automática \(L_{\text{NW}} = \lfloor 4(T/100)^{2/9} \rfloor\) (\(L_{\text{NW}}=5\) para \(T\approx 350\)) como con una ventana ampliada igual al horizonte de solapamiento (\(L = H\)).
 
 \paragraph{Sesgo medio, asimetría y colas pesadas.}
-La Tabla~\ref{tab:etapa2_sesgo} resume las pruebas de sesgo medio y normalidad sobre las muestras limpias (sin cruces de año base). En todos los horizontes evaluados se rechaza la hipótesis nula de media cero (\(p < 10^{-5}\) incluso bajo errores HAC conservadores \(L=H\)), confirmando que las primeras publicaciones subestiman sistemáticamente el crecimiento revisado. Además, la serie exhibe asimetría positiva (\(1{,}145\) a \(1{,}394\)) y marcado exceso de curtosis (\(5{,}465\) a \(6{,}523\)), por lo que la prueba de Jarque--Bera rechaza con holgura la normalidad (\(p < 10^{-100}\)). Este hallazgo provee motivación empírica directa para contemplar innovaciones de colas pesadas en el experimento sintético de la Etapa~6.
+La Tabla~\ref{tab:etapa2_sesgo} presenta las pruebas de sesgo medio y normalidad. En todos los horizontes se rechaza la hipótesis de media nula (\(p < 10^{-5}\) incluso bajo errores estándar conservadores \(L=H\)), confirmando que las primeras cifras subestiman de manera sistemática el crecimiento revisado. Asimismo, las revisiones muestran asimetría positiva (\(1{,}145\) a \(1{,}394\)) y marcado exceso de curtosis (\(5{,}465\) a \(6{,}523\)), rechazándose la normalidad mediante la prueba de Jarque--Bera (\(p < 10^{-100}\)), rasgo que motivó incluir colas pesadas en la simulación sintética posterior.
 
 \begin{table}[htbp]
 	\centering
@@ -121,21 +122,21 @@ La Tabla~\ref{tab:etapa2_sesgo} resume las pruebas de sesgo medio y normalidad s
 		\(H=12\) & 331 & 0.363 & 0.067 & \(5{,}7\times 10^{-8}\) & 0.080 & \(5{,}6\times 10^{-6}\) & 1.145 & 5.465 & 468.6\\
 		\bottomrule
 	\end{tabular}
-	\fuente{elaboración propia a partir de \archivo{etapa2_descriptivos_horizontes.csv}. Todos los estadísticos JB presentan \(p < 10^{-100}\).}
+	\fuente{elaboración propia a partir de las pruebas econométricas sobre la muestra depurada. Todos los estadísticos Jarque--Bera arrojan \(p < 10^{-100}\).}
 \end{table}
 
 \paragraph{Autocorrelación, estacionalidad y señal observable en \texorpdfstring{\(v_0\)}{v0}.}
-La Figura~\ref{fig:acf_estac} muestra la función de autocorrelación alineada por calendario para \(Y_t^{(11)}\) y la estacionalidad mensual de las revisiones. Se observa fuerte persistencia de corto plazo (\(\hat{\rho}_1 = +0{,}453\), \(\hat{\rho}_2 = +0{,}310\); Ljung--Box \(Q(12) = 225{,}89\), \(p = 1{,}4\times 10^{-41}\)), pero estos rezagos (\(k < 11\)) aún no se conocen al publicarse \(v_0(t)\). De forma notable, más allá de la frontera de observabilidad en tiempo real (\(k \geq 11\)) reaparece un pico anual altamente significativo en \(\hat{\rho}_{11} = +0{,}234\) (\(p=2{,}7\times 10^{-5}\)), \(\hat{\rho}_{12} = +0{,}386\) (\(p=1{,}3\times 10^{-12}\)) y \(\hat{\rho}_{13} = +0{,}288\) (\(p=2{,}2\times 10^{-7}\)). En paralelo, existe un claro patrón estacional: los meses del primer trimestre registran las mayores revisiones al alza (enero \(+0{,}731\), febrero \(+0{,}503\), marzo \(+0{,}734\) p.p.), descendiendo gradualmente hasta noviembre (\(+0{,}143\)) y diciembre (\(-0{,}083\) p.p.).
+La Figura~\ref{fig:acf_estac} muestra la autocorrelación de \(Y_t^{(11)}\) y su perfil mensual. Aunque existe fuerte persistencia de corto plazo (\(\hat{\rho}_1 = +0{,}453\), \(\hat{\rho}_2 = +0{,}310\); prueba de \cite{ljung1978} \(Q(12) = 225{,}89\), \(p = 1{,}4\times 10^{-41}\)), esos rezagos inmediatos (\(k < 11\)) todavía no se conocen al publicarse \(v_0(t)\). En cambio, más allá de la frontera observable en tiempo real (\(k \geq 11\)) aparece un pico anual claro en \(\hat{\rho}_{11} = +0{,}234\) (\(p=2{,}7\times 10^{-5}\)), \(\hat{\rho}_{12} = +0{,}386\) (\(p=1{,}3\times 10^{-12}\)) y \(\hat{\rho}_{13} = +0{,}288\) (\(p=2{,}2\times 10^{-7}\)). Además, se observa estacionalidad marcada: los meses del primer trimestre registran las mayores revisiones al alza (enero \(+0{,}731\), febrero \(+0{,}503\) y marzo \(+0{,}734\) p.p.), descendiendo hacia noviembre (\(+0{,}143\)) y diciembre (\(-0{,}083\) p.p.).
 
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=0.95\textwidth]{images/etapa2_acf_pacf.png}
 	\caption{Autocorrelación de \(Y_t^{(11)}\) respecto a la frontera observable en \(v_0\) (izquierda) y estacionalidad mensual (derecha)}
 	\label{fig:acf_estac}
-	\fuente{elaboración propia a partir de \archivo{etapa2_acf_pacf_y11.csv} y \archivo{etapa2_estacionalidad_y11.csv}.}
+	\fuente{elaboración propia a partir de la serie histórica limpia (\(n=350\)).}
 \end{figure}
 
-La Tabla~\ref{tab:etapa2_rt} evalúa de forma diagnóstica qué proporción de la varianza de \(Y_t^{(11)}\) se asocia con variables estrictamente observables en el origen \(v_0(t)\) (\(n=313\) observaciones completas con rezagos observables). Los rezagos completados \(Y_{t-11}^{(11)}\) y \(Y_{t-12}^{(11)}\) explican por sí solos un \(R^2 = 0{,}157\) (impulsados por \(Y_{t-12}^{(11)}\) con coeficiente \(+0{,}320\), \(p = 4{,}5\times 10^{-5}\)), y el modelo conjunto que integra \(y_t^{(v_0)}\), rezagos anuales observables, revisiones recientes de corto plazo y dummies mensuales alcanza \(R^2 = 0{,}223\) (\(\bar{R}^2 = 0{,}180\), \(F_{\text{NW}} = 4{,}190\), \(p = 2{,}6\times 10^{-7}\)), manteniendo significativo a \(Y_{t-12}^{(11)}\) (\(+0{,}250\), \(p=0{,}0023\)) incluso al controlar por estacionalidad. Estos resultados respaldan la Hipótesis~1 en su componente de estructura sistemática observable.
+La Tabla~\ref{tab:etapa2_rt} evalúa qué proporción de la variabilidad de \(Y_t^{(11)}\) se explica únicamente con datos observables en \(v_0(t)\) (\(n=313\) meses con rezagos completos). Los rezagos anuales disponibles \(Y_{t-11}^{(11)}\) y \(Y_{t-12}^{(11)}\) explican un \(R^2 = 0{,}157\) (impulsados por el rezago anual \(Y_{t-12}^{(11)}\) con coeficiente \(+0{,}320\), \(p = 4{,}5\times 10^{-5}\)), y el modelo conjunto que reúne primera publicación, rezagos anuales, revisiones recientes observables e indicadores mensuales alcanza \(R^2 = 0{,}223\) (\(\bar{R}^2 = 0{,}180\), \(F_{\text{NW}} = 4{,}190\), \(p = 2{,}6\times 10^{-7}\)), manteniendo significativo a \(Y_{t-12}^{(11)}\) (\(+0{,}250\), \(p=0{,}0023\)). Estos resultados respaldan la Hipótesis~1 sobre la presencia de estructura sistemática predecible.
 
 \begin{table}[htbp]
 	\centering
@@ -150,18 +151,18 @@ La Tabla~\ref{tab:etapa2_rt} evalúa de forma diagnóstica qué proporción de l
 		Solo primera publicación (\(y_t^{(v_0)}\)) & 1 & 0.0230 & 0.0198 & 4.999 & \(0{,}0261\) & 677.59\\
 		Rezagos completados (\(Y_{t-11}, Y_{t-12}\)) & 2 & 0.1569 & 0.1515 & 9.197 & \(1{,}3\times 10^{-4}\) & 637.20\\
 		Revisiones recientes (\(s=1,2\)) & 2 & 0.0179 & 0.0115 & 4.120 & \(0{,}0171\) & 684.97\\
-		Estacionalidad mensual (11 dummies) & 11 & 0.0807 & 0.0471 & 2.249 & \(0{,}0122\) & 716.00\\
+		Estacionalidad mensual (11 indicadores) & 11 & 0.0807 & 0.0471 & 2.249 & \(0{,}0122\) & 716.00\\
 		Modelo conjunto observable en \(v_0\) & 16 & 0.2225 & 0.1804 & 4.190 & \(2{,}6\times 10^{-7}\) & 692.30\\
 		\bottomrule
 	\end{tabular}
-	\fuente{elaboración propia a partir de \archivo{etapa2_asociacion_tiempo_real.csv}.}
+	\fuente{elaboración propia con base en las estimaciones en tiempo real del estudio.}
 \end{table}
 
 \paragraph{Eficiencia Mincer--Zarnowitz, no linealidad y heterogeneidad de regímenes y sectores.}
-La Tabla~\ref{tab:etapa2_mz} presenta las regresiones de eficiencia \(y_t^{(v_H)} = \alpha + \beta y_t^{(v_0)} + u_t\) para los horizontes globales y para cuatro subregímenes históricos en \(H=11\). En todos los casos la hipótesis conjunta \(\alpha=0, \beta=1\) se rechaza con claridad (\(p_{\text{NW}} \leq 0{,}0125\)), fundamentalmente por un intercepto positivo \(\hat{\alpha} > 0\), mientras \(\hat{\beta}\) permanece próximo a la unidad (\(1{,}018\) global en \(H=11\), \(p_{\beta=1} = 0{,}068\)). Los diagnósticos residuales revelan dos rasgos cruciales para las etapas posteriores:
+La Tabla~\ref{tab:etapa2_mz} resume las regresiones de eficiencia \(y_t^{(v_H)} = \alpha + \beta y_t^{(v_0)} + u_t\) \parencite{mincer1969}. En todos los horizontes y períodos se rechaza la eficiencia perfecta (\(\alpha=0, \beta=1\); \(p_{\text{NW}} \leq 0{,}0125\)), principalmente por el intercepto positivo \(\hat{\alpha} > 0\), mientras \(\hat{\beta}\) permanece cercano a \(1\) (\(1{,}018\) global en \(H=11\), \(p_{\beta=1} = 0{,}068\)). Los diagnósticos residuales revelan dos hechos esenciales:
 \begin{enumerate}
-	\item \textbf{Agrupamiento de volatilidad y compresión post-2014:} la prueba ARCH(1) resulta altamente significativa en la muestra completa (\(p = 3{,}1\times 10^{-7}\)), reflejando una transición marcada desde elevada dispersión en 1993--1999 (\(\text{DE}=1{,}289\)) y 2000--2012 (\(\text{DE}=0{,}716\)) hacia una fase mucho más estable bajo la base 2007 pre-COVID (\(\text{DE}=0{,}196\), aunque manteniendo sesgo positivo de \(+0{,}163\) p.p., \(p = 7{,}2\times 10^{-9}\)), como ilustra la Figura~\ref{fig:regimenes}.
-	\item \textbf{Origen localizado de la no linealidad:} aunque la prueba RESET de Ramsey es significativa en la muestra completa de \(H=11\) (\(p=0{,}00096\)), el análisis por subregímenes demuestra que la no linealidad se concentra exclusivamente en el período COVID/post-COVID 2020--2024 (\(p = 0{,}00030\)), mientras que es nula en 2000--2012 (\(p=0{,}911\)) y en 2014--2019 (\(p=0{,}208\)). Por ello, las arquitecturas no lineales (XGBoost, ESN, QRC) deberán evaluarse observando su estabilidad entre regímenes y no solo su ajuste en el episodio pandémico.
+	\item \textbf{Cambios de volatilidad a lo largo del tiempo:} la prueba de heterocedasticidad condicional \parencite{engle1982} es altamente significativa en el agregado (\(p = 3{,}1\times 10^{-7}\)), al pasar de una alta dispersión entre 1993 y 2012 (\(\text{DE}=1{,}289\) y \(0{,}716\)) a una fase mucho más estable entre 2014 y 2019 (\(\text{DE}=0{,}196\), aunque conservando sesgo positivo de \(+0{,}163\) p.p., \(p = 7{,}2\times 10^{-9}\)), como muestra la Figura~\ref{fig:regimenes}.
+	\item \textbf{Origen pandémico de la no linealidad:} aunque la prueba RESET \parencite{ramsey1969} rechaza la linealidad en la muestra completa de \(H=11\) (\(p=0{,}00096\)), el desglose por períodos demuestra que dicho rechazo ocurre únicamente entre 2020 y 2024 (\(p = 0{,}00030\)), siendo nulo en 2000--2012 (\(p=0{,}911\)) y en 2014--2019 (\(p=0{,}208\)). Por ello, los modelos no lineales se evaluaron revisando por separado períodos estables y el bloque pandémico.
 \end{enumerate}
 
 \begin{table}[htbp]
@@ -186,7 +187,7 @@ La Tabla~\ref{tab:etapa2_mz} presenta las regresiones de eficiencia \(y_t^{(v_H)
 		2020-01 a 2024-11 (COVID+)     & 59 & 0.297 & 0.057 & 1.004 & 0.006 & 13.95 & \(1{,}2\times 10^{-5}\) & \(0{,}5904\) & \(0{,}0003\)\\
 		\bottomrule
 	\end{tabular}
-	\fuente{elaboración propia a partir de \archivo{etapa2_mincer_zarnowitz.csv}. Errores estándar y pruebas de Wald reportados con ajuste HAC (\(L_{\text{NW}}\)).}
+	\fuente{elaboración propia con ajuste de errores estándar HAC (\(L_{\text{NW}}\)).}
 \end{table}
 
 \begin{figure}[htbp]
@@ -194,51 +195,53 @@ La Tabla~\ref{tab:etapa2_mz} presenta las regresiones de eficiencia \(y_t^{(v_H)
 	\includegraphics[width=0.95\textwidth]{images/etapa2_regimenes_evolucion.png}
 	\caption{Evolución temporal de \(Y_t^{(11)}\), media y desviación estándar móviles por regímenes (1993--2024)}
 	\label{fig:regimenes}
-	\fuente{elaboración propia a partir de \archivo{etapa2_regimenes_y11.csv} y \archivo{muestra_objetivo_gdp.csv}.}
+	\fuente{elaboración propia a partir de la serie limpia del PBI peruano.}
 \end{figure}
 
-Finalmente, la Figura~\ref{fig:sectores} muestra que el sesgo positivo agregado del PBI (\(+0{,}347\) p.p.) es altamente heterogéneo entre sectores: se concentra en pesca (\(+2{,}143\), \(\text{DE}=7{,}447\), \(p=0{,}00045\)), agropecuario (\(+0{,}821\), \(p=2{,}1\times 10^{-9}\)), comercio (\(+0{,}562\), \(p=0{,}00052\)), manufactura (\(+0{,}525\), \(p=1{,}0\times 10^{-6}\)) y minería (\(+0{,}505\), \(p=3{,}0\times 10^{-8}\)), mientras que construcción (\(+0{,}098\), \(p=0{,}462\)), servicios (\(+0{,}076\), \(p=0{,}273\)) y electricidad (\(-0{,}011\), \(p=0{,}753\)) no difieren estadísticamente de cero.
+Por último, la Figura~\ref{fig:sectores} muestra que el sesgo positivo agregado (\(+0{,}347\) p.p.) es muy distinto entre ramas productivas: se concentra en pesca (\(+2{,}143\), \(\text{DE}=7{,}447\), \(p=0{,}00045\)), sector agropecuario (\(+0{,}821\), \(p=2{,}1\times 10^{-9}\)), comercio (\(+0{,}562\), \(p=0{,}00052\)), manufactura (\(+0{,}525\), \(p=1{,}0\times 10^{-6}\)) y minería (\(+0{,}505\), \(p=3{,}0\times 10^{-8}\)), mientras construcción (\(+0{,}098\), \(p=0{,}462\)), servicios (\(+0{,}076\), \(p=0{,}273\)) y electricidad (\(-0{,}011\), \(p=0{,}753\)) no difieren significativamente de cero.
 
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=0.82\textwidth]{images/etapa2_sectores_sesgo.png}
 	\caption{Sesgo medio de revisión por sector económico a horizonte \(H=11\) limpio (IC 95\% HAC)}
 	\label{fig:sectores}
-	\fuente{elaboración propia a partir de \archivo{etapa2_sectores_h11.csv}.}
+	\fuente{elaboración propia con base en las series sectoriales verificadas.}
 \end{figure}
 
 \subsection{Desempeño de los modelos}
 \label{subsec:desempeno_modelos}
 
-Con el objeto de evaluar las arquitecturas de referencia sin fuga temporal (Etapas~3 y~5), el script \archivo{scripts/etapa3\_modelos\_clasicos.py} (apoyado en las utilidades causales de \archivo{scripts/rtd\_eval\_utils.py}) ejecuta un backtest expansivo sobre los \(n=250\) orígenes limpios comprendidos entre \texttt{2003m2} (\(v_0=\texttt{2003-04}\), tras \(90\) revisiones iniciales completadas) y \texttt{2024m11} (\(v_0=\texttt{2025-01}\), con \(339\) revisiones completadas). En cada fecha \(t\), el conjunto de entrenamiento incluye exclusivamente las observaciones pasadas cuya ventana de revisión \(v_{11}(s)\) ya concluyó en o antes de \(v_0(t)\). Asimismo, la imputación por mediana, la estandarización, las cargas factoriales PCA, el orden autorregresivo BIC (\(p \in \{1,2,3\}\) sobre rezagos completados \(Y_{t-11},Y_{t-12},Y_{t-13}\)) y los hiperparámetros regularizados (\(\lambda\) de \textit{Ridge}/\textit{DFM} y profundidad/tasa/número de árboles de \textit{GBDT}) se seleccionan íntegramente dentro de la ventana causal mediante validación temporal interna creciente (\(\min(36, \lfloor 0{,}25\,n_{\text{tr}}\rfloor)\) puntos terminales). Los dos primeros rezagos completados (\(p=2\)) fueron seleccionados por BIC en el \(99{,}2\%\) de los orígenes para \textit{AR} (\(248/250\)) y en el \(98{,}8\%\) para \textit{ARX} (\(247/250\)), reflejando la señal anual observada en tiempo real (\(\hat{\rho}_{12}=0{,}386\)); de forma análoga, \textit{Ridge} seleccionó el extremo superior \(\lambda=500\) como mediana (\(164/250\) orígenes) para contener la colinealidad sectorial.
+Para evaluar la capacidad predictiva real sin usar información futura, se realizaron pronósticos recursivos en ventana móvil expansiva sobre los \(n=250\) orígenes limpios comprendidos entre febrero de 2003 (con \(90\) revisiones históricas previas disponibles) y noviembre de 2024 (con \(339\) revisiones disponibles). En cada fecha, el modelo entrenó exclusivamente con observaciones cuyo horizonte \(H=11\) ya había terminado en o antes de esa publicación. Toda estandarización, carga factorial, selección de orden autorregresivo BIC (\(p \in \{1,2,3\}\)) e hiperparámetros regularizados se estimó dentro de la muestra disponible en ese momento. El criterio BIC eligió dos rezagos anuales (\(p=2\)) en casi la totalidad de los períodos (\(99{,}2\%\) en el modelo AR y \(98{,}8\%\) en ARX), en línea con la correlación anual observada en tiempo real (\(\hat{\rho}_{12}=0{,}386\)), mientras Ridge eligió penalización alta (\(\lambda=500\) como mediana en \(164\) de \(250\) orígenes) para estabilizar regresores sectoriales colineales.
 
 \begin{table}[htbp]
 	\centering
-	\caption{Desempeño predictivo fuera de muestra global de las referencias clásicas sobre \(Y_t^{(11)}\) (2003m2--2024m11, \(n=250\))}
+	\caption{Desempeño predictivo fuera de muestra global de referentes clásicos, reservorios y QRC sobre \(Y_t^{(11)}\) (2003m2--2024m11, \(n=250\))}
 	\label{tab:metricas}
 	\footnotesize
 	\renewcommand{\arraystretch}{1.15}
-	\begin{tabular}{@{}>{\raggedright\arraybackslash}p{4.3cm}S[table-format=1.3]S[table-format=1.3]S[table-format=-1.3]S[table-format=-1.3]l@{}}
+	\begin{tabular}{@{}>{\raggedright\arraybackslash}p{4.5cm}S[table-format=1.3]S[table-format=1.3]S[table-format=-1.3]S[table-format=-1.3]l@{}}
 		\toprule
 		Modelo & {RMSE} & {MAE} & {Sesgo} & {$R^2_{\text{OOS}}$} & {IC 95\% \(\Delta\text{RMSE}\) (vs. Ridge)}\\
 		\midrule
 		Referencia nula (\(\widehat{Y}=0\)) & 0.574 & 0.396 & 0.292 & -0.349 & {\([-0{,}135;\; +0{,}150]\), \(p_{\text{DM}}=0{,}918\)}\\
-		Corrección clásica (media exp.) & 0.513 & 0.395 & -0.131 & -0.077 & {\([-0{,}176;\; +0{,}057]\), \(p_{\text{DM}}=0{,}430\)}\\
-		Corrección clásica (móvil 60m) & 0.525 & 0.381 & 0.021 & -0.127 & {\([-0{,}164;\; +0{,}064]\), \(p_{\text{DM}}=0{,}512\)}\\
-		\(\text{AR}(p)\) observable (BIC) & 0.498 & 0.356 & -0.037 & -0.016 & {\([-0{,}189;\; +0{,}044]\), \(p_{\text{DM}}=0{,}301\)}\\
-		\(\text{ARX}(p)\) observable (BIC) & 0.558 & 0.384 & -0.015 & -0.276 & {\([-0{,}068;\; +0{,}037]\), \(p_{\text{DM}}=0{,}791\)}\\
-		Ridge (benchmark principal, 20 var.) & 0.566 & 0.384 & -0.064 & -0.312 & {Referencia principal (\(0{,}000\))}\\
-		Factor DFM-PCA + Ridge (6 sect.) & 0.605 & 0.392 & -0.067 & -0.498 & {\([-0{,}001;\; +0{,}086]\), \(p_{\text{DM}}=0{,}184\)}\\
-		GBDT (NumPy; alt. a XGBoost)\textsuperscript{a} & 0.495 & 0.356 & -0.068 & -0.003 & {\([-0{,}193;\; +0{,}032]\), \(p_{\text{DM}}=0{,}290\)}\\
-		ESN (reservorio clásico) & {\textit{pend.}} & {\textit{pend.}} & {\textit{pend.}} & {\textit{pend.}} & {[pendiente Etapa~4]}\\
-		QRC (reservorio cuántico) & {\textit{pend.}} & {\textit{pend.}} & {\textit{pend.}} & {\textit{pend.}} & {[pendiente Etapa~4]}\\
+		Corrección de sesgo (media exp.) & 0.513 & 0.395 & -0.131 & -0.077 & {\([-0{,}176;\; +0{,}057]\), \(p_{\text{DM}}=0{,}430\)}\\
+		Corrección de sesgo (móvil 60m) & 0.525 & 0.381 & 0.021 & -0.127 & {\([-0{,}164;\; +0{,}064]\), \(p_{\text{DM}}=0{,}512\)}\\
+		Autorregresivo AR (BIC) & 0.498 & 0.356 & -0.037 & -0.016 & {\([-0{,}189;\; +0{,}044]\), \(p_{\text{DM}}=0{,}301\)}\\
+		ARX observable (BIC) & 0.558 & 0.384 & -0.015 & -0.276 & {\([-0{,}068;\; +0{,}037]\), \(p_{\text{DM}}=0{,}791\)}\\
+		Regresión Ridge (benchmark, 20 var.) & 0.566 & 0.384 & -0.064 & -0.312 & {Referencia principal (\(0{,}000\))}\\
+		Factores dinámicos (DFM + Ridge) & 0.605 & 0.392 & -0.067 & -0.498 & {\([-0{,}001;\; +0{,}086]\), \(p_{\text{DM}}=0{,}184\)}\\
+		Árboles potenciados (GBDT)\textsuperscript{a} & 0.495 & 0.356 & -0.068 & -0.003 & {\([-0{,}193;\; +0{,}032]\), \(p_{\text{DM}}=0{,}290\)}\\
+		Características aleatorias (RFF, \(m=20\))\textsuperscript{b} & 0.456 & 0.334 & -0.069 & 0.149 & {\([-0{,}222;\; -0{,}013]\), \(p_{\text{DM}}=0{,}094\)}\\
+		Reservorio clásico ESN (20 n.)\textsuperscript{b} & 0.472 & 0.341 & -0.057 & 0.087 & {\([-0{,}188;\; -0{,}004]\), \(p_{\text{DM}}=0{,}103\)}\\
+		Reservorio clásico ESN (64 n.)\textsuperscript{b} & 0.508 & 0.379 & -0.038 & -0.056 & {\([-0{,}136;\; +0{,}014]\), \(p_{\text{DM}}=0{,}200\)}\\
+		Reservorio cuántico QRC (5 qubits)\textsuperscript{b} & 0.478 & 0.352 & -0.102 & 0.063 & {\([-0{,}208;\; +0{,}020]\), \(p_{\text{DM}}=0{,}196\)}\\
 		\bottomrule
 	\end{tabular}
-	\caption*{\footnotesize \textit{Nota:} \textsuperscript{a}Implementación exacta en NumPy puro (\archivo{GBDT\_NumPy}, árboles CART con profundidad máxima \(\{1,2\}\) y tasa \(\{0{,}03;\,0{,}06\}\)) porque \texttt{xgboost} no está instalado en el entorno. Los intervalos de confianza al 95\% para \(\text{RMSE}_{\text{modelo}} - \text{RMSE}_{\text{Ridge}}\) provienen de bootstrap circular por bloques (\(L=12\), \(B=2000\)); \(p_{\text{DM}}\) corresponde a la prueba bilateral Diebold--Mariano con ajuste Harvey--Leybourne--Newbold sobre pérdida cuadrática.}
-	\fuente{elaboración propia con base en \archivo{output/etapa3\_clasicos/etapa3\_metricas\_globales.csv} y \archivo{etapa3\_comparacion\_estadistica.csv}.}
+	\caption*{\footnotesize \textit{Nota:} \textsuperscript{a}Implementación exacta mediante árboles CART acotados (\texttt{GBDT\_NumPy} en los gráficos). \textsuperscript{b}Promedios deterministas sobre cinco semillas (\texttt{101, 202, 303, 404, 505}); \texttt{QRC\_Ising5} emplea simulación exacta por matriz densidad; en las figuras, los nombres abreviados corresponden a \texttt{Zero}, \texttt{BiasCorr\_Mean}, \texttt{BiasCorr\_Roll60}, \texttt{AR\_BIC}, \texttt{ARX\_BIC}, \texttt{Ridge}, \texttt{DFM\_Factor\_Ridge}, \texttt{GBDT\_NumPy}, \texttt{RFF\_20}, \texttt{ESN\_20}, \texttt{ESN\_64} y \texttt{QRC\_Ising5}. Intervalos bootstrap por bloques \parencite{politis1992} (\(L=12\), \(B=2000\)); \(p_{\text{DM}}\) bilateral de \textcite{harvey1997} sobre pérdida cuadrática.}
+	\fuente{elaboración propia con base en las evaluaciones fuera de muestra del estudio (2003--2024).}
 \end{table}
 
-Los resultados globales de la Tabla~\ref{tab:metricas} revelan una disociación estructural clave al desagregar el backtest entre el tramo \textbf{pre-congelado previo al COVID-19} (\texttt{2003m2--2019m11}, \(n=190\)) y el \textbf{bloque congelado final} (\texttt{2019m12--2024m11}, \(n=60\)), resumida en la Tabla~\ref{tab:etapa3_regimenes} y visualizada en la Figura~\ref{fig:etapa3_oos}. Antes de diciembre de 2019, el benchmark lineal preespecificado \textit{Ridge} obtiene el mejor desempeño del conjunto clásico (\(\text{RMSE}=0{,}503\), \(\text{MAE}=0{,}375\), \(R^2_{\text{OOS}}=+0{,}094\)), reduciendo el RMSE en \(-0{,}047\) puntos porcentuales respecto a la media histórica expansiva (\(\text{DM}_{\text{HLN}}=-2{,}724\), \(p=0{,}0071\); IC 95\% \([-0{,}079;\;-0{,}016]\)) y en \(-0{,}030\) frente a \textit{GBDT\_NumPy} (\(\text{DM}_{\text{HLN}}=-2{,}655\), \(p=0{,}0086\)). Asimismo, en el régimen poscambio de base pre-COVID (\texttt{2014m1--2019m11}, \(n=71\)), la media móvil de \(60\) meses alcanza el menor RMSE (\(\text{RMSE}=0{,}210\), sesgo \(+0{,}003\)) al capturar el descenso gradual del sesgo tras el cambio a año base \(2007=100\), mientras la media expansiva acumulada arrastra un sesgo de sobrepredicción de \(-0{,}230\) p.p.
+Los resultados globales de la Tabla~\ref{tab:metricas} muestran una clara diferencia entre el tramo previo al COVID-19 (febrero de 2003 a noviembre de 2019, \(n=190\)) y el bloque final congelado (diciembre de 2019 a noviembre de 2024, \(n=60\)), resumida en la Tabla~\ref{tab:etapa3_regimenes} y la Figura~\ref{fig:etapa3_oos}. Antes de diciembre de 2019, la regresión Ridge encabeza las referencias lineales (\(\text{RMSE}=0{,}503\), \(\text{MAE}=0{,}375\), \(R^2_{\text{OOS}}=+0{,}094\)), reduciendo el error en \(-0{,}047\) puntos porcentuales frente a la media histórica expansiva (\(\text{DM}_{\text{HLN}}=-2{,}724\), \(p=0{,}0071\); IC 95\% \([-0{,}079;\;-0{,}016]\)) y en \(-0{,}030\) frente a los árboles potenciados (\(\text{DM}_{\text{HLN}}=-2{,}655\), \(p=0{,}0086\)). Asimismo, en el tramo 2014--2019 previo a la pandemia (\(n=71\)), la corrección móvil de sesenta meses logra \(\text{RMSE}=0{,}210\) con sesgo casi nulo (\(+0{,}003\)).
 
 \begin{table}[htbp]
 	\centering
@@ -246,7 +249,7 @@ Los resultados globales de la Tabla~\ref{tab:metricas} revelan una disociación 
 	\label{tab:etapa3_regimenes}
 	\footnotesize
 	\renewcommand{\arraystretch}{1.12}
-	\begin{tabular}{@{}>{\raggedright\arraybackslash}p{4.3cm}S[table-format=1.3]S[table-format=1.3]S[table-format=-1.3]S[table-format=1.3]S[table-format=1.3]S[table-format=-1.3]@{}}
+	\begin{tabular}{@{}>{\raggedright\arraybackslash}p{4.5cm}S[table-format=1.3]S[table-format=1.3]S[table-format=-1.3]S[table-format=1.3]S[table-format=1.3]S[table-format=-1.3]@{}}
 		\toprule
 		& \multicolumn{3}{c}{Pre-congelado (\(n=190\))} & \multicolumn{3}{c}{Bloque congelado (\(n=60\))}\\
 		\cmidrule(lr){2-4}\cmidrule(lr){5-7}
@@ -255,52 +258,207 @@ Los resultados globales de la Tabla~\ref{tab:metricas} revelan una disociación 
 		Referencia nula (\(\widehat{Y}=0\)) & 0.602 & 0.414 & -0.299 & 0.474 & 0.338 & -0.682\\
 		Corrección media expansiva & 0.550 & 0.433 & -0.084 & 0.371 & 0.274 & -0.033\\
 		Corrección móvil \(60\text{m}\) & 0.559 & 0.416 & -0.120 & 0.396 & 0.269 & -0.175\\
-		\(\text{AR}(p)\) observable (BIC) & 0.526 & 0.384 & 0.007 & 0.396 & 0.267 & -0.175\\
-		\(\text{ARX}(p)\) observable (BIC) & 0.521 & 0.383 & 0.028 & 0.663 & 0.387 & -2.290\\
-		Ridge (benchmark principal) & 0.503 & 0.375 & 0.094 & 0.731 & 0.413 & -3.001\\
-		Factor DFM-PCA + Ridge & 0.515 & 0.379 & 0.050 & 0.827 & 0.434 & -4.125\\
-		GBDT (NumPy acotado) & 0.533 & 0.394 & -0.017 & 0.349 & 0.237 & 0.087\\
+		Autorregresivo AR (BIC) & 0.526 & 0.384 & 0.007 & 0.396 & 0.267 & -0.175\\
+		ARX observable (BIC) & 0.521 & 0.383 & 0.028 & 0.663 & 0.387 & -2.290\\
+		Regresión Ridge (benchmark) & 0.503 & 0.375 & 0.094 & 0.731 & 0.413 & -3.001\\
+		Factores dinámicos (DFM + Ridge) & 0.515 & 0.379 & 0.050 & 0.827 & 0.434 & -4.125\\
+		Árboles potenciados (GBDT) & 0.533 & 0.394 & -0.017 & 0.349 & 0.237 & 0.087\\
+		Características aleatorias (RFF) & 0.480 & 0.355 & 0.174 & 0.368 & 0.269 & -0.017\\
+		Reservorio clásico ESN (20 n.) & 0.485 & 0.359 & 0.156 & 0.427 & 0.285 & -0.367\\
+		Reservorio clásico ESN (64 n.) & 0.505 & 0.389 & 0.088 & 0.518 & 0.348 & -1.008\\
+		Reservorio cuántico QRC (5 qubits) & 0.509 & 0.379 & 0.070 & 0.363 & 0.266 & 0.013\\
 		\bottomrule
 	\end{tabular}
-	\fuente{elaboración propia con base en \archivo{output/etapa3\_clasicos/etapa3\_metricas\_subperiodos.csv}.}
+	\fuente{elaboración propia con base en los resultados fuera de muestra por regímenes (2003--2024).}
 \end{table}
 
-Por el contrario, en el bloque congelado (\texttt{2019m12--2024m11}, \(n=60\)), todas las especificaciones lineales que incorporan \(y_0\) o factores sectoriales lineales colapsan ante la extrapolación fuera de soporte durante el choque y rebote del COVID-19: en abril de \(2020\) (\(y_0=-40{,}5\%\), revisión realizada \(Y=+1{,}4\) p.p.) \textit{Ridge} pronostica \(-1{,}464\) p.p., y en abril de \(2021\) (\(y_0=+58{,}5\%\), \(Y=+0{,}8\) p.p.) extrapola a \(+4{,}020\) p.p., elevando su RMSE en el bloque congelado a \(0{,}731\) (\(R^2_{\text{OOS}}=-3{,}001\)). En contraste, al saturar por cortes en variables, \textit{GBDT\_NumPy} acota dichos episodios (\(+0{,}241\) y \(+0{,}909\) p.p.) y logra el mejor desempeño del bloque congelado (\(\text{RMSE}=0{,}349\), \(\text{MAE}=0{,}237\), \(R^2_{\text{OOS}}=+0{,}087\)), superando con intervalo bootstrap al 95\% estrictamente negativo tanto a \textit{Ridge} (\([-0{,}581;\;-0{,}020]\)) como a la referencia nula (\([-0{,}215;\;-0{,}026]\)) y marginalmente a la media expansiva (\([-0{,}052;\;-0{,}00003]\)). Este mecanismo explica directamente por qué la prueba RESET de la Etapa~2 rechazó la linealidad únicamente en el tramo \(2020\text{--}2024\): no por ausencia de señal lineal en períodos regulares, sino por la falla de extrapolación de los regresores lineales bajo variaciones extremas de \(y_0\). Asimismo, aunque la prueba de Clark--West global arroja estadísticos positivos para la inclusión de predictores (\(\text{CW}=3{,}554\), \(p=0{,}00019\) para \textit{Ridge} frente a la media expansiva), dicho valor debe interpretarse con cautela porque el término de ajuste \((\hat{y}_{\text{media}}-\hat{y}_{\text{Ridge}})^2\) se ve mecánicamente amplificado por las desviaciones extremas de \textit{Ridge} en \(2020\text{--}2021\). Para la Etapa~4, esta evidencia fija un punto de comparación riguroso: cualquier arquitectura de reservorio (\textit{ESN} o \textit{QRC}) deberá demostrar si sus no linealidades acotadas retienen la ventaja predictiva de \textit{Ridge} en períodos normales sin colapsar frente a choques extremos como \textit{GBDT\_NumPy}.
+Por el contrario, en el bloque congelado (\(n=60\)), todos los modelos lineales que emplean directamente la primera publicación \(y_0\) o factores sectoriales sin límite fallan al extrapolar fuera del rango histórico durante el choque y rebote del COVID-19: en abril de \(2020\) (\(y_0=-40{,}5\)\%, revisión \(Y=+1{,}4\) p.p.) Ridge pronostica \(-1{,}464\) p.p., y en abril de \(2021\) (\(y_0=+58{,}5\)\%, \(Y=+0{,}8\) p.p.) proyecta \(+4{,}020\) p.p., elevando su RMSE a \(0{,}731\) (\(R^2_{\text{OOS}}=-3{,}001\)). En cambio, los árboles potenciados acotados limitan esas proyecciones (\(+0{,}241\) y \(+0{,}909\) p.p.) y logran el menor error del bloque final (\(\text{RMSE}=0{,}349\), \(\text{MAE}=0{,}237\), \(R^2_{\text{OOS}}=+0{,}087\)), superando con intervalo bootstrap al 95\% estrictamente favorable tanto a Ridge (\([-0{,}581;\;-0{,}020]\)) como a la referencia nula (\([-0{,}215;\;-0{,}026]\)) y levemente a la media expansiva (\([-0{,}052;\;-0{,}00003]\)). Esto explica por qué la prueba RESET rechazó la linealidad únicamente entre 2020 y 2024: no por ausencia de relación lineal en años regulares, sino por la extrapolación extrema de los regresores lineales frente a caídas y rebotes atípicos de \(y_0\). Asimismo, aunque la prueba de \textcite{clark2007} arroja valores positivos para Ridge frente a la media expansiva (\(\text{CW}=3{,}554\), \(p=0{,}00019\)), dicho estadístico queda artificialmente amplificado por las desviaciones extremas de 2020--2021.
 
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=0.96\textwidth]{images/etapa3_oos_predicciones.png}
-	\caption{Pronósticos causales fuera de muestra en esquema expansivo (panel superior) y diferencia acumulada de pérdida cuadrática respecto a \textit{Ridge} (panel inferior), 2003m2--2024m11.}
+	\caption{Pronósticos causales fuera de muestra de referentes clásicos en esquema expansivo (panel superior) y diferencia acumulada de pérdida cuadrática respecto a Ridge (panel inferior), 2003m2--2024m11.}
 	\label{fig:etapa3_oos}
 \end{figure}
 
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=0.96\textwidth]{images/etapa3_rmse_regimenes.png}
-	\caption{RMSE fuera de muestra por régimen económico y bloque congelado final para las ocho referencias clásicas (Etapas~3 y~5).}
+	\caption{RMSE fuera de muestra por régimen económico y bloque congelado final para las ocho referencias clásicas.}
 	\label{fig:etapa3_regimenes}
 \end{figure}
 
-\subsection{Resultados del experimento sintético}
+Al comparar los modelos de reservorio, se evaluó la arquitectura cuántica confirmatoria de cinco qubits (espacio de estados de dimensión \(d=32\), dinámica fija de espines acoplados y veinte observables de Pauli) frente a controles clásicos equivalentes de igual dimensión de lectura (ESN de veinte neuronas y características aleatorias RFF) y frente a una ESN ampliada de sesenta y cuatro neuronas bajo exactamente los mismos \(250\) orígenes y cinco semillas. Las pruebas numéricas previas comprobaron la exactitud del simulador (error de unitariedad \(\le 3{,}13\times 10^{-15}\) y conservación de traza \(\le 4{,}46\times 10^{-16}\)) y la ausencia total de filtración de datos futuros.
 
-\textbf{Pendiente de ejecución.} El experimento sintético calibrado (Etapa~6) no se ha ejecutado. Cuando se ejecute, se reportará la mejora relativa
+El análisis conjunto de las Tablas~\ref{tab:metricas} y~\ref{tab:etapa3_regimenes} y de las Figuras~\ref{fig:etapa4_oos}--\ref{fig:etapa4_estabilidad} conduce a tres conclusiones claras:
+\begin{enumerate}
+	\item \textbf{Contención efectiva de extremos pandémicos:} al transformar las entradas mediante ángulos y expectativas acotadas en \([-1,1]\), el reservorio cuántico evita la extrapolación excesiva de Ridge en 2020--2021 y alcanza el segundo mejor desempeño del tramo final (\(\text{RMSE}=0{,}363\), \(R^2_{\text{OOS}}=+0{,}013\)), superando en la muestra completa a la corrección clásica por media expansiva (\(\text{DM}_{\text{HLN}}=-2{,}391\), \(p=0{,}0175\); IC 95\% \([-0{,}060;\;-0{,}010]\); y \(p=0{,}00031\) en MAE).
+	\item \textbf{Paridad o desventaja frente a controles clásicos acotados:} al contrastar métodos no lineales acotados de igual tamaño de lectura (\(m=20\)), el reservorio cuántico (\(\text{RMSE}=0{,}478\)) no supera a sus referentes clásicos equivalentes. Las características aleatorias RFF (\(\text{RMSE}=0{,}456\), \(R^2_{\text{OOS}}=+0{,}149\)) superan puntualmente a QRC en el total muestral (\(\text{DM}_{\text{HLN}}=2{,}459\), \(p=0{,}0146\); IC 95\% \([+0{,}006;\;+0{,}038]\)) y antes de la pandemia (\(\text{RMSE}=0{,}480\) frente a \(0{,}509\), \(p=0{,}0038\)), mientras que la red clásica ESN de veinte neuronas (\(\text{RMSE}=0{,}472\)) resulta estadísticamente equivalente (\(\text{DM}_{\text{HLN}}=0{,}346\), \(p=0{,}730\); IC 95\% \([-0{,}032;\;+0{,}038]\)). Además, ampliar la ESN a sesenta y cuatro neuronas empeora la precisión respecto a veinte neuronas (\(\text{RMSE}=0{,}508\) frente a \(0{,}472\), \(p=0{,}046\)), confirmando que las series mensuales cortas favorecen lecturas sencillas.
+	\item \textbf{Variabilidad entre semillas y papel del promediado:} tomadas por separado, las cinco semillas de QRC exhiben mayor dispersión (\(\text{RMSE}=0{,}5160 \pm 0{,}0316\), rango \(0{,}488\text{--}0{,}567\)) que RFF (\(0{,}4860 \pm 0{,}0141\)) y ESN (\(0{,}4910 \pm 0{,}0107\)); el promedio sobre cinco semillas reduce la varianza y sitúa el error conjunto en \(\text{RMSE}=0{,}478\). Conforme a las reglas fijadas de interpretación, la mejora frente a modelos lineales proviene de la acotación no lineal de las variables y no de una ventaja cuántica propia.
+\end{enumerate}
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.96\textwidth]{images/etapa4_reservorios_oos.png}
+	\caption{Pronósticos causales fuera de muestra (panel superior) y pérdida cuadrática acumulada relativa frente a Ridge (panel inferior) para QRC, ESN, RFF y GBDT (2003m2--2024m11).}
+	\label{fig:etapa4_oos}
+\end{figure}
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.96\textwidth]{images/etapa4_estabilidad_regimenes.png}
+	\caption{Comparación de RMSE entre bloque pre-congelado y bloque congelado (izquierda) y dispersión entre cinco semillas frente al promedio (derecha).}
+	\label{fig:etapa4_estabilidad}
+\end{figure}
+
+\subsection{Resultados del experimento sintético}
+\label{subsec:experimento_sintetico}
+
+Se calibró el modelo paramétrico de la Ecuación~\ref{eq:dgp} sobre la muestra peruana completa con regresores observables (\(n=314\)) aplicando \(300\) réplicas bootstrap por bloques (\(L=12\)), con lo que se obtuvieron las estimaciones \(\hat{\mu}=0{,}203 \pm 0{,}051\), \(\hat{\phi}_{12}=0{,}341 \pm 0{,}082\), \(\|\hat{\boldsymbol{\gamma}}\|_2=0{,}088 \pm 0{,}111\) y \(\hat{\sigma}_{\varepsilon}=0{,}655 \pm 0{,}074\). Propagando esta incertidumbre, se simularon doce escenarios definidos de antemano con veinte repeticiones independientes cada uno (\(N_{\text{OOS}}=80\) pronósticos causales por repetición), evaluando la mejora porcentual relativa
 \[
-\Delta(\theta)=
+\Delta_B(\theta)=
 100\left(
 \frac{\RMSE_{B}(\theta)-\RMSE_{\QRC}(\theta)}
 {\RMSE_{B}(\theta)}
 \right)
 \]
-con intervalos de incertidumbre y error Monte Carlo, y la región favorable
+y la región favorable
 \[
 \mathcal{A}=
 \left\{\theta:
-\Delta(\theta)\geq\delta_{\min}
-\ \text{y la incertidumbre es compatible con una mejora}
-\right\},
+\Delta_B(\theta)\geq\delta_{\min}
+\ \text{y el límite inferior del IC 95\% Monte Carlo es positivo}
+\right\}.
 \]
-donde \(\delta_{\min}\) se justificará antes del análisis final.
+El umbral práctico mínimo se fijó en \(\delta_{\min}=2{,}0\%\) (equivalente a \(0{,}010\text{--}0{,}013\) p.p. de RMSE), en consonancia con la escala de incertidumbre observada en los datos reales.
+
+\begin{table}[htbp]
+	\centering
+	\caption{Experimento sintético calibrado: RMSE promedio, mejora relativa \(\Delta(\theta)\) de QRC y región favorable (\(\delta_{\min}=2{,}0\%\))}
+	\label{tab:etapa6_sintetico}
+	\footnotesize
+	\renewcommand{\arraystretch}{1.12}
+	\begin{tabular}{@{}>{\raggedright\arraybackslash}p{3.9cm}S[table-format=1.3]S[table-format=1.3]S[table-format=1.3]S[table-format=1.3]S[table-format=-2.2]S[table-format=-2.2]c@{}}
+		\toprule
+		Escenario & {Ridge} & {RFF} & {ESN} & {QRC} & {\(\Delta_{\text{Ridge}}\) (\%)} & {\(\Delta_{\text{ESN}}\) (\%)} & {\(\theta \in \mathcal{A}\)?}\\
+		\midrule
+		Calibrado Perú (\(T=350\)) & 0.606 & 0.617 & 0.620 & 0.652 & -7.49 & -5.08 & No\\
+		Muestra mediana (\(T=700\)) & 0.619 & 0.629 & 0.638 & 0.669 & -8.53 & -5.29 & No\\
+		Muestra larga (\(T=1400\)) & 0.642 & 0.649 & 0.662 & 0.695 & -8.42 & -5.06 & No\\
+		Persistencia baja (\(\phi=0{,}10\)) & 0.640 & 0.642 & 0.645 & 0.647 & -1.32 & -0.45 & No\\
+		Persistencia alta (\(\phi=0{,}65\)) & 0.664 & 0.701 & 0.724 & 0.801 & -20.90 & -11.16 & No\\
+		SNR baja (\(0{,}5\times\)) & 0.655 & 0.665 & 0.669 & 0.680 & -3.62 & -1.32 & No\\
+		SNR alta (\(2{,}5\times\)) & 0.638 & 0.652 & 0.665 & 0.705 & -11.62 & -6.67 & No\\
+		Gaussiano sin ARCH (\(T=350\)) & 0.630 & 0.646 & 0.649 & 0.672 & -6.39 & -3.45 & No\\
+		No lineal + choques (\(T=350\)) & 0.615 & 0.621 & 0.620 & 0.634 & -2.99 & -2.13 & No\\
+		No lineal + choques (\(T=1000\)) & 0.624 & 0.618 & 0.617 & 0.633 & -1.36 & -2.41 & No\\
+		Baja dim. efectiva (\(d=2\)) & 0.622 & 0.631 & 0.631 & 0.656 & -5.87 & -4.05 & No\\
+		Alta dim. efectiva (\(d=8\)) & 0.693 & 0.715 & 0.723 & 0.753 & -8.48 & -4.14 & No\\
+		\bottomrule
+	\end{tabular}
+	\fuente{elaboración propia con base en las simulaciones calibradas del estudio (\(20\) réplicas por escenario).}
+\end{table}
+
+La Tabla~\ref{tab:etapa6_sintetico} y la Figura~\ref{fig:etapa6_delta} confirman tres regularidades consistentes:
+\begin{enumerate}
+	\item \textbf{Región favorable vacía (\(\mathcal{A}=\emptyset\)):} con una semilla individual, el modelo cuántico no supera al umbral favorable en ninguno de los doce escenarios ni frente a Ridge ni frente a ESN o RFF. Incluso con \(T=1400\) períodos, su brecha respecto a Ridge ronda \(-8{,}4\)\%, confirmando que su ventaja sobre Ridge en los datos reales obedeció al colapso pandémico lineal y al promediado entre semillas.
+	\item \textbf{Pérdida de precisión con persistencia lineal elevada:} en el escenario de persistencia alta (\(\phi=0{,}65\)), la desventaja de QRC frente a Ridge alcanza \(-20{,}90\)\% (\(-11{,}16\)\% frente a ESN), ya que codificar el rezago lineal \(Y_{t-12}\) dentro de ángulos no lineales acoplados introduce distorsión.
+	\item \textbf{Dinámicas no lineales con muestra amplia:} cuando el proceso incorpora saturación no lineal con choques extremos y \(T=1000\), ESN (\(\text{RMSE}=0{,}617\)) y RFF (\(0{,}618\)) superan a la regresión Ridge (\(0{,}624\)), acortándose la distancia de QRC respecto a Ridge hasta \(-1{,}36\)\%, pero ambos controles clásicos retienen una ventaja cercana al \(2{,}2\text{--}2{,}4\)\% sobre QRC.
+\end{enumerate}
+
+Adicionalmente, conforme al Anexo~\ref{app:potencia}, se estimaron el efecto mínimo detectable (MDE al \(80\)\% de potencia, \(\alpha=0{,}05\)) y las curvas de potencia empíricas por bootstrap sobre la muestra peruana (\(n=250\), Figura~\ref{fig:etapa6_potencia}). Frente a Ridge, la alta varianza generada por la pandemia (\(\text{SE}_{\text{NW}}=0{,}0676\)) eleva el MDE a \(36{,}1\)\% de reducción en RMSE (potencia de solo \(15\text{--}21\)\% para ganancias reales de \(2\text{--}12\)\%). Frente a referentes más estables, el MDE es de \(7{,}6\)\% contra la media expansiva, \(11{,}1\)\% contra ESN y \(5{,}7\)\% contra RFF (\(8{,}9\)\% contra Ridge antes de la pandemia). Por tanto, el tamaño muestral disponible ofrece baja potencia (\(\approx 8\text{--}21\)\%) para distinguir mejoras pequeñas cercanas al \(2\)\%.
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.96\textwidth]{images/etapa6_delta_escenarios.png}
+	\caption{Mejora relativa \(\Delta(\theta)\) de QRC e intervalos de confianza al 95\% Monte Carlo en los doce escenarios sintéticos calibrados.}
+	\label{fig:etapa6_delta}
+\end{figure}
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.96\textwidth]{images/etapa6_potencia_mde.png}
+	\caption{Efecto mínimo detectable al 80\% de potencia (izquierda) y curvas de potencia bootstrap sobre la muestra peruana de \(n=250\) orígenes (derecha).}
+	\label{fig:etapa6_potencia}
+\end{figure}
 
 \subsection{Resultados del análisis económico}
+\label{subsec:analisis_economico}
 
-\textbf{Condicionado a ejecución.} Solo si se identificara una mejora predictiva robusta se reportarían diferencias de pérdida entre reglas de decisión, con supuestos, sensibilidad e incertidumbre explícitos. No se convertirían mejoras predictivas en beneficios monetarios sin un modelo de costos y decisiones.
+El ejercicio económico exploratorio no se ejecutó en aplicación estricta de la regla de decisión fijada en la metodología y el Anexo~\ref{app:voi}. Dado que la arquitectura cuántica no superó tras corrección por multiplicidad a la regresión Ridge ni a los controles clásicos equivalentes —siendo superada puntualmente por RFF (\(p=0{,}0146\) sin ajuste) y empatando con ESN (\(p=0{,}730\))— y al resultar vacía la región favorable sintética (\(\mathcal{A}=\emptyset\)), no se realizó simulación monetizada ni se atribuyó valor económico diferencial a QRC.
+
+\subsection{Síntesis inferencial, ajuste por multiplicidad y \textit{Model Confidence Set}}
+\label{subsec:inferencia_integrada_etapa8}
+
+Para cerrar la evaluación comparativa, se integraron los doce modelos mediante tres procedimientos formales: (i)~corrección por comparaciones múltiples de \textcite{holm1979} y de tasa de falsos descubrimientos de \textcite{benjamini1995} sobre la familia confirmatoria de siete contrastes de QRC; (ii)~clasificación en las cuatro categorías preespecificadas en el diseño; y (iii)~estimación del conjunto de confianza de modelos (\textit{Model Confidence Set}, MCS) de \textcite{hansen2011} bajo pérdidas cuadrática (MSE) y absoluta (MAE) en los alcances global (\(n=250\)), pre-congelado (\(n=190\)) y bloque final congelado (\(n=60\)).
+
+\begin{table}[htbp]
+	\centering
+	\caption{Familia confirmatoria del reservorio cuántico (QRC) con ajuste por comparaciones múltiples}
+	\label{tab:etapa8_holm}
+	\scriptsize
+	\setlength{\tabcolsep}{3.5pt}
+	\renewcommand{\arraystretch}{1.14}
+	\begin{tabular}{@{}>{\raggedright\arraybackslash}p{3.1cm}S[table-format=1.3]S[table-format=-1.3]cS[table-format=1.4]S[table-format=1.4]S[table-format=1.4]>{\raggedright\arraybackslash}p{2.7cm}@{}}
+		\toprule
+		Comparador (\(n=250\)) & {\(\text{RMSE}\)} & {\(\Delta\)} & {\(\text{IC}_{95\%}\) boot.} & {\(p_{\text{DM}}\)} & {\(p_{\text{Holm}}\)} & {\(p_{\text{BH}}\)} & Clasificación formal\\
+		\midrule
+		Referencia nula (\(\widehat{Y}=0\)) & 0.574 & -0.096 & \([-0{,}191;\, 0{,}002]\) & 0.1131 & 0.5656 & 0.2640 & Resultado inconcluso\\
+		Corrección media exp. & 0.513 & -0.034 & \([-0{,}060;\, -0{,}010]\) & 0.0175 & 0.1052 & 0.0614 & Mejora sin sig. Holm\\
+		Autorregresivo AR (BIC) & 0.498 & -0.020 & \([-0{,}057;\, 0{,}019]\) & 0.3811 & 0.8094 & 0.4447 & Resultado inconcluso\\
+		Regresión Ridge & 0.566 & -0.088 & \([-0{,}208;\, 0{,}020]\) & 0.1957 & 0.7830 & 0.3426 & Resultado inconcluso\\
+		Árboles potenciados (GBDT) & 0.495 & -0.017 & \([-0{,}044;\, 0{,}008]\) & 0.2698 & 0.8094 & 0.3777 & Resultado inconcluso\\
+		ESN clásica (20 neuronas) & 0.472 & 0.006 & \([-0{,}032;\, 0{,}038]\) & 0.7296 & 0.8094 & 0.7296 & Resultado inconcluso\\
+		Características aleatorias (RFF) & 0.456 & 0.022 & \([+0{,}006;\, +0{,}038]\) & 0.0146 & 0.1023 & 0.0614 & Desventaja sin sig. Holm\\
+		\midrule
+		\multicolumn{8}{@{}l}{\textit{Único contraste significativo tras Holm en los subperíodos (pre-congelado \(n=190\)):}}\\
+		Características RFF (pre-COVID) & 0.480 & 0.029 & \([+0{,}012;\, +0{,}046]\) & 0.0038 & 0.0265 & 0.0265 & Evidencia desfavorable\\
+		\bottomrule
+	\end{tabular}
+	\fuente{elaboración propia a partir de las pruebas comparativas del estudio. \(\text{RMSE}_{\text{QRC}}=0{,}478\) en \(n=250\) y \(0{,}509\) en \(n=190\); \(\Delta=\text{RMSE}_{\text{QRC}}-\text{RMSE}_{\text{comp}}<0\) favorece a QRC.}
+\end{table}
+
+La Tabla~\ref{tab:etapa8_holm} confirma que ninguno de los siete contrastes globales supera el umbral de significancia después de corregir por multiplicidad (\(p_{\text{Holm}} \ge 0{,}1023\)). Frente a la corrección por media expansiva, la mejora puntual (\(-0{,}034\) p.p., \(p=0{,}0175\) sin ajuste) queda en \(p_{\text{Holm}}=0{,}1052\) y \(p_{\text{BH}}=0{,}0614\). En sentido inverso, RFF supera puntualmente a QRC en el total muestral (\(p=0{,}0146\) sin ajuste; \(p_{\text{Holm}}=0{,}1023\)) y alcanza ventaja significativa incluso tras ajuste estricto de Holm en el tramo previo a la pandemia de \(n=190\) (\(p_{\text{Holm}}=0{,}0265\), \(\text{IC}_{95\%}=[+0{,}012;\, +0{,}046]\)), constituyendo el único caso de evidencia desfavorable firme contra QRC entre los veintiún contrastes evaluados. En el bloque congelado (\(n=60\)), los siete contrastes arrojan \(p_{\text{Holm}}=1{,}000\) debido al menor tamaño muestral y la varianza pandémica.
+
+\begin{table}[htbp]
+	\centering
+	\caption{Supervivencia de los doce modelos en el \textit{Model Confidence Set} (\(p_{\text{MCS}}\), \(T_{\max}\), \(B=2000\))}
+	\label{tab:etapa8_mcs}
+	\footnotesize
+	\setlength{\tabcolsep}{5.5pt}
+	\renewcommand{\arraystretch}{1.12}
+	\begin{tabular}{@{}>{\raggedright\arraybackslash}p{4.4cm}S[table-format=1.3]S[table-format=1.3]S[table-format=1.3]S[table-format=1.3]S[table-format=1.3]S[table-format=1.3]@{}}
+		\toprule
+		& \multicolumn{2}{c}{Global (\(n=250\))} & \multicolumn{2}{c}{Pre-COVID (\(n=190\))} & \multicolumn{2}{c}{Congelado (\(n=60\))}\\
+		\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+		Modelo & {MSE} & {MAE} & {MSE} & {MAE} & {MSE} & {MAE}\\
+		\midrule
+		Características aleatorias (RFF) & 1.000 & 1.000 & 1.000 & 1.000 & 0.713 & 0.880\\
+		Reservorio clásico ESN (20 n.) & 0.674 & 0.827 & 0.767 & 0.922 & 0.584 & 0.880\\
+		Reservorio cuántico QRC (5 qubits) & 0.674 & 0.827 & 0.767 & 0.922 & 0.713 & 0.880\\
+		Árboles potenciados (GBDT) & 0.674 & 0.827 & 0.549 & 0.708 & 1.000 & 1.000\\
+		Autorregresivo AR (BIC) & 0.674 & 0.827 & 0.767 & 0.922 & 0.584 & 0.880\\
+		Reservorio clásico ESN (64 n.) & 0.674 & 0.827 & 0.767 & 0.922 & 0.378 & 0.442\\
+		Corrección de sesgo (media exp.) & 0.640 & 0.512 & 0.097 & 0.003 & 0.713 & 0.880\\
+		Corrección de sesgo (móvil 60m) & 0.640 & 0.827 & 0.118 & 0.247 & 0.713 & 0.880\\
+		ARX observable (BIC) & 0.640 & 0.827 & 0.549 & 0.922 & 0.346 & 0.442\\
+		Regresión Ridge (benchmark) & 0.640 & 0.827 & 0.767 & 0.922 & 0.187 & 0.243\\
+		Referencia nula (\(\widehat{Y}=0\)) & 0.640 & 0.827 & 0.549 & 0.922 & 0.353 & 0.442\\
+		Factores dinámicos (DFM + Ridge) & 0.562 & 0.736 & 0.767 & 0.922 & 0.222 & 0.201\\
+		\bottomrule
+	\end{tabular}
+	\fuente{elaboración propia a partir de la evaluación conjunta del estudio. Regla de pertenencia: \(p_{\text{MCS}}\ge 0{,}10\) para \(\text{MCS}_{90\%}\) y \(p_{\text{MCS}}\ge 0{,}25\) para \(\text{MCS}_{75\%}\).}
+\end{table}
+
+El análisis del conjunto de confianza de modelos (Tabla~\ref{tab:etapa8_mcs} y Figura~\ref{fig:etapa8_mcs}) resume la capacidad discriminante en cada período:
+\begin{itemize}
+	\item \textbf{Empate estadístico en la muestra completa:} en los \(250\) orígenes totales, los doce modelos permanecen dentro del \(\text{MCS}_{90\%}\) y del \(\text{MCS}_{75\%}\) (\(p_{\text{MCS}} \ge 0{,}562\) en MSE y \(\ge 0{,}512\) en MAE), encabezados por RFF (\(p=1{,}000\)) y con ESN de veinte neuronas, QRC, AR y árboles potenciados agrupados en un segundo escalón equivalente (\(p=0{,}674\) en MSE; \(p=0{,}827\) en MAE). La alta varianza pandémica impide rechazar la igualdad de precisión entre los modelos competitivos.
+	\item \textbf{Capacidad discriminante por regímenes:} al aislar el período previo a la pandemia (\(n=190\)), el método expulsa del \(\text{MCS}_{90\%}\) a la corrección por media histórica (\(p=0{,}097\) en MSE; \(p=0{,}003\) en MAE) y deja a la media móvil fuera del \(\text{MCS}_{75\%}\). En cambio, en el bloque congelado pandémico (\(n=60\)), GBDT lidera (\(p=1{,}000\)) seguido de QRC (\(p=0{,}713\) en MSE; \(0{,}880\) en MAE), mientras las dos especificaciones lineales no acotadas (Ridge, \(p=0{,}187\); factores dinámicos, \(p=0{,}222\)) son expulsadas del \(\text{MCS}_{75\%}\).
+\end{itemize}
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.98\textwidth]{images/etapa8_mcs_inferencia.png}
+	\caption{Supervivencia en el \textit{Model Confidence Set} bajo pérdida MSE por bloque temporal (izquierda) y familia confirmatoria de QRC en \(n=250\) con intervalos al 95\% y \(p\)-valores de Holm--Bonferroni (derecha).}
+	\label{fig:etapa8_mcs}
+\end{figure}

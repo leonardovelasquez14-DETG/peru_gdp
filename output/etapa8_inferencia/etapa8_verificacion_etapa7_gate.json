@@ -1,0 +1,17 @@
+{
+  "etapa7_activada": false,
+  "condicion_1_supera_Ridge_holm95": false,
+  "condicion_2_supera_ESN20_holm95": false,
+  "condicion_3_supera_RFF20_holm95": false,
+  "condicion_4_region_sintetica_favorable_no_vacia": false,
+  "nota_protocolo": "Se aplica la regla de paro preespecificada en la Seccion 9.3.7 y Anexo I: no se ejecuta ni se monetiza analisis economico atribuible a QRC porque no existe mejora robusta sobre los controles clasicos equivalentes (RFF_20 supera a QRC con p_raw=0.0146; ESN_20 empata con p_raw=0.730; y region sintetica A = vacio).",
+  "software_env": {
+    "python": "3.14.8",
+    "numpy": "2.5.4",
+    "pandas": "2.3.3",
+    "scipy": "1.18.1",
+    "statsmodels": "0.15.1.dev0+g278ff9950.d20260912",
+    "matplotlib": "3.11.2"
+  },
+  "etapa6_delta_min_pct": 2.0
+}

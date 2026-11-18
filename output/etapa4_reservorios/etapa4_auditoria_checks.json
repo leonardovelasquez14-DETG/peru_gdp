@@ -1,0 +1,32 @@
+{
+  "environment_packages": {
+    "numpy": true,
+    "scipy": true,
+    "pandas": true,
+    "qiskit": false,
+    "pennylane": false,
+    "cirq": false,
+    "qutip": false,
+    "sklearn": false
+  },
+  "backend_disclosure": "Simulador cuantico exacto por matriz densidad en NumPy/SciPy (d=32, 5 qubits), equivalente a limite de shots infinitos sin ruido; qiskit/pennylane no estan instalados.",
+  "quantum_physics_invariants": {
+    "max_unitarity_err_L2": 3.1311497106229174e-15,
+    "max_trace_err": 4.460163166093219e-16,
+    "max_hermiticity_err": 5.721958498152797e-17,
+    "min_density_eigenvalue": 7.62939453117644e-06,
+    "max_pauli_bound_violation": 0.0,
+    "max_fast_vs_dense_observable_diff": 2.220446049250313e-16,
+    "passed": true
+  },
+  "zero_leakage_future_corruption_test": {
+    "tested_origins": [
+      100,
+      200,
+      290,
+      340
+    ],
+    "max_prediction_diff_under_future_corruption": 0.0,
+    "passed": true
+  }
+}

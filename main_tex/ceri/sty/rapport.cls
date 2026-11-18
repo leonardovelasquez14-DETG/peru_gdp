@@ -249,16 +249,18 @@
 \RequirePackage[
 	maxcitenames=2,						% two authors max in the text (only for author-year)
 	maxbibnames=99,						% list all authors in the reference list
-	style=numeric,						% numeric style for reference list
-	citestyle=numeric-comp,				% numeric style for citations
-%	style=authoryear,					% NOTE: if you want the author-year style instead,
-%	citestyle=authoryear-comp,			% uncomment these 2 lines and comment both ones above
+	style=authoryear,					% author-year style for reference list
+	citestyle=authoryear-comp,			% author-year style for citations
+	sorting=nyt,
 %	backref=true,						% includes a page backlink in the reference list
-%	dashed=false,						% displays all author names (only for authoryear)
+	dashed=false,						% displays all author names (only for authoryear)
     datamodel=ceri/sty/hal_id,              % prints custom hal-id fields
     backend=biber                       % uses biber to compile (instead of bibtex)
 ]
 {biblatex}								% uses biblatex (instead of bibtex)
+\DefineBibliographyStrings{spanish}{
+	andothers = {et\addabbrvspace al\adddot},
+}
 %\renewcommand*{\bibfont}				% changes font size for biblio
 %		{\footnotesize} 				
 \newcommand{\bibName}{Bibliografía}	% define bibliography header

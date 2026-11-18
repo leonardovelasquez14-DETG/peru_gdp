@@ -1,12 +1,12 @@
 % ============================================================================
 \section{Resultados}
 
-Los resultados siguen el orden lógico de la investigación: auditoría del archivo histórico, descripción estadística y análisis econométrico a horizonte fijo, desempeño fuera de muestra de modelos clásicos y reservorios, simulación sintética calibrada junto con potencia estadística, verificación de la regla económica condicionada e inferencia comparativa múltiple. Por disponibilidad de paquetes en el entorno de cálculo, los árboles potenciados (GBDT) se estimaron mediante árboles CART acotados y el reservorio cuántico (QRC) mediante simulación exacta de cinco qubits sin ruido físico.
+A continuación se presentan los hallazgos completos del estudio en orden lógico: primero la limpieza de la base histórica del BCRP, luego los patrones estadísticos de las revisiones, después la competencia predictiva mes a mes entre los doce modelos, seguida por las simulaciones artificiales, la verificación de la regla económica y las pruebas estadísticas conjuntas finales. Por disponibilidad de librerías en el entorno de cálculo, los árboles potenciados (GBDT) se construyeron con árboles de decisión acotados en Python y el reservorio cuántico (QRC) mediante simulación exacta de cinco qubits sin ruido físico.
 
-\subsection{Resultado de la auditoría de datos}
+\subsection{Limpieza y verificación del archivo histórico}
 \label{subsec:auditoria_preliminar}
 
-La Tabla~\ref{tab:auditoria} resume los hallazgos tras auditar la base histórica del BCRP compilada por \textcite{cruz2025}.
+La Tabla~\ref{tab:auditoria} resume los resultados de revisar de punta a punta la base histórica del BCRP recopilada por \textcite{cruz2025}. Se eliminaron filas repetidas, se comprobó que ningún dato de años futuros apareciera antes de tiempo y se verificó qué sectores tienen historia completa.
 
 \begin{table}[htbp]
 	\centering
@@ -18,22 +18,22 @@ La Tabla~\ref{tab:auditoria} resume los hallazgos tras auditar la base históric
 		\toprule
 		Indicador de auditoría & Valor & Estado / evidencia\\
 		\midrule
-		Observaciones industria--vintage & 44\,307 & Verificado en tabla consolidada\\
-		Industrias identificadas & 9 & Verificado (cobertura sectorial desigual)\\
-		Rango de vintages (continuo) & 1994-01 a 2025-12 & Verificado (384 meses sin faltantes en PBI)\\
-		Rango de períodos objetivo & 1992-01 a 2025-10 & Verificado (406 meses)\\
+		Registros sector--boletín & 44\,307 & Verificado en tabla consolidada\\
+		Actividades económicas & 9 & Verificado (cobertura desigual por sector)\\
+		Boletines mensuales continuos & 1994-01 a 2025-12 & Verificado (384 meses sin faltantes en PBI)\\
+		Meses económicos cubiertos & 1992-01 a 2025-10 & Verificado (406 meses)\\
 		Períodos PBI limpios a \(H=11\) & 350 (374 brutos) & Verificado; 0 huecos internos (1993-10 a 2024-11)\\
 		Períodos PBI limpios a \(H=12\) & 331 (355 brutos) & Verificado; 18 huecos internos (diciembres 2018--2023 y 2015--2016)\\
-		Excluidos a \(H=11\) (limpio) & 56 & 21 sin primera publicación oportuna + 11 fin de muestra + 24 cruce de año base\\
-		Granularidad de fechas & Mensual & Aproximación mensual al tiempo real (sin día exacto)\\
-		Sectores con cobertura completa & 6 de 9 & Servicios desde 1997-07; electricidad desde 2003-05; minería omite 9 meses (2018--2019)\\
-		Duplicados y fuga temporal & Resuelto (0 fugas) & 3\,131 filas repetidas depuradas; 0 celdas adelantadas\\
+		Períodos excluidos en \(H=11\) & 56 & 21 sin primer dato oportuno + 11 fin de muestra + 24 cambio de año base\\
+		Detalle de fechas & Mensual & Aproximación mensual en tiempo real (sin día exacto)\\
+		Sectores con serie continua & 6 de 9 & Servicios desde 1997-07; electricidad desde 2003-05; minería omite 9 meses (2018--2019)\\
+		Duplicados y fuga futura & Resuelto (0 fugas) & 3\,131 filas repetidas eliminadas; 0 datos adelantados\\
 		\bottomrule
 	\end{tabular}
 	\fuente{elaboración propia a partir del repositorio histórico del BCRP \parencite{cruz2025}.}
 \end{table}
 
-La Figura~\ref{fig:triangulo} ilustra la evolución de las revisiones acumuladas desde la primera cifra difundida (\(v_0\)) hasta doce meses después. En ella se aprecian tanto los saltos provocados por los cambios de año base (julio de 2000 y marzo de 2014) como los vacíos internos en \(h=12\), lo que justifica emplear \(H=11\) como horizonte anual continuo principal y conservar \(H=12\), \(6\) y \(3\) para evaluar sensibilidad.
+La Figura~\ref{fig:triangulo} muestra cómo cambian las estimaciones del PBI desde su primera publicación hasta doce meses después. Allí se observan claramente dos saltos bruscos que corresponden a los cambios de año base oficiales (julio de 2000 y marzo de 2014), además de pequeños vacíos en la línea de doce meses debido al formato de publicación de las Notas Semanales. Esa observación confirma por qué conviene usar el plazo de once meses (\(H=11\)) como serie principal continua y dejar doce, seis y tres meses como verificación adicional.
 
 \begin{figure}[htbp]
 	\centering
@@ -43,10 +43,10 @@ La Figura~\ref{fig:triangulo} ilustra la evolución de las revisiones acumuladas
 	\fuente{elaboración propia a partir de los registros históricos del BCRP.}
 \end{figure}
 
-\subsection{Caracterización descriptiva de las revisiones a horizonte fijo}
+\subsection{Comportamiento básico de las revisiones}
 \label{subsec:descriptivos}
 
-La Tabla~\ref{tab:descriptivos_revision} presenta los estadísticos descriptivos de la revisión definida según la Ecuación~\ref{eq:target} (\(Y_t^{(H)} = y_t^{(v_H)} - y_t^{(v_0)}\)), comparando el horizonte principal \(H=11\) frente a \(H=12\), \(6\) y \(3\) meses. También se incluye como referencia la serie de horizonte variable (\textit{última menos primera publicación}) sobre los \(406\) períodos totales, equivalente con signo opuesto al \(-0{,}256\) calculado en la lectura preliminar inicial (véase el Anexo~\ref{app:objetivo}).
+El hallazgo principal al comparar cifras preliminares con sus versiones corregidas es directo: \textbf{cuando se publica por primera vez el PBI mensual del Perú, suele quedarse corto}. Como muestra la Tabla~\ref{tab:descriptivos_revision}, once meses después (\(H=11\)) la tasa corregida sube en promedio \(+0{,}347\) puntos porcentuales respecto al primer anuncio (y \(+0{,}363\) puntos si se mide a doce meses). La misma tendencia al alza aparece en todos los horizontes evaluados, desde tres meses (\(+0{,}205\) puntos) hasta la comparación con el último dato disponible (\(+0{,}256\) puntos, equivalente con signo invertido al \(-0{,}256\) visto en la lectura inicial; Anexo~\ref{app:objetivo}).
 
 \begin{table}[htbp]
 	\centering
@@ -70,9 +70,9 @@ La Tabla~\ref{tab:descriptivos_revision} presenta los estadísticos descriptivos
 	\fuente{elaboración propia a partir de la muestra depurada de publicaciones del BCRP.}
 \end{table}
 
-En todos los horizontes comparables, la revisión media es positiva (\(+0{,}347\) p.p. a \(H=11\) y \(+0{,}363\) p.p. a \(H=12\)), lo que confirma que la primera cifra difundida suele ubicarse \emph{por debajo} de la estimación corregida posteriormente. Asimismo, excluir los \(24\) períodos afectados por cambios de año base reduce los extremos negativos (de \(-5{,}500\) a \(-2{,}000\) p.p.) y baja la desviación estándar de \(0{,}930\) a \(0{,}768\), mostrando que los saltos negativos pronunciados correspondían a empalmes metodológicos y no a revisiones estadísticas ordinarias. Por su parte, el retraso de publicación se mantuvo casi constante en dos meses (media \(2{,}003\), desviación estándar \(0{,}051\), rango de \(2\) a \(3\) en \(n=384\)).
+La Tabla~\ref{tab:descriptivos_revision} también demuestra la utilidad de retirar los \(24\) meses afectados por cambios de año base: al separarlos, desaparece la caída extrema de \(-5{,}500\) puntos (quedando en \(-2{,}000\)) y la dispersión baja de \(0{,}930\) a \(0{,}768\), señal de que esos grandes saltos negativos reflejaban empalmes estadísticos y no correcciones corrientes. Por su parte, la demora habitual para publicar por primera vez un mes se mantuvo prácticamente fija en dos meses (promedio de \(2{,}003\) meses).
 
-Las Figuras~\ref{fig:scatter}, \ref{fig:hist} y \ref{fig:horizontes} presentan, respectivamente, la relación entre \(y_t^{(v_0)}\) y \(y_t^{(v_{11})}\), la distribución empírica de las revisiones distinguiendo cambios de base y la variación de cobertura entre \(H=3\) y \(H=18\) (donde la muestra cae a \(5\) observaciones y a \(0\) en \(H=24\)).
+Las Figuras~\ref{fig:scatter}, \ref{fig:hist} y~\ref{fig:horizontes} ilustran visualmente estos rasgos: la relación casi uno a uno pero ligeramente desplazada hacia arriba entre primera y última cifra, la distribución concentrada a la derecha del cero tras separar cambios de base, y cómo cae la cantidad de datos útiles al alargar demasiado el horizonte (cayendo a \(5\) observaciones en \(18\) meses y a \(0\) en \(24\) meses).
 
 \begin{figure}[htbp]
 	\centering
@@ -98,17 +98,17 @@ Las Figuras~\ref{fig:scatter}, \ref{fig:hist} y \ref{fig:horizontes} presentan, 
 	\fuente{elaboración propia.}
 \end{figure}
 
-\subsection{Caracterización econométrica de las revisiones}
+\subsection{Qué patrones estadísticos siguen las revisiones}
 \label{subsec:econometria}
 
-El análisis econométrico se realizó sobre las muestras depuradas empleando errores estándar robustos a heterocedasticidad y autocorrelación \parencite{newey1987}, tanto con la ventana automática \(L_{\text{NW}} = \lfloor 4(T/100)^{2/9} \rfloor\) (\(L_{\text{NW}}=5\) para \(T\approx 350\)) como con una ventana ampliada igual al horizonte de solapamiento (\(L = H\)).
+Antes de entrenar modelos complejos, se verificó si las revisiones seguían reglas observables o si eran puro ruido. Las pruebas tomaron en cuenta que los errores de meses cercanos se parecen entre sí aplicando la corrección de \textcite{newey1987} (tanto en su versión estándar como considerando once meses de solapamiento).
 
-\paragraph{Sesgo medio, asimetría y colas pesadas.}
-La Tabla~\ref{tab:etapa2_sesgo} presenta las pruebas de sesgo medio y normalidad. En todos los horizontes se rechaza la hipótesis de media nula (\(p < 10^{-5}\) incluso bajo errores estándar conservadores \(L=H\)), confirmando que las primeras cifras subestiman de manera sistemática el crecimiento revisado. Asimismo, las revisiones muestran asimetría positiva (\(1{,}145\) a \(1{,}394\)) y marcado exceso de curtosis (\(5{,}465\) a \(6{,}523\)), rechazándose la normalidad mediante la prueba de Jarque--Bera (\(p < 10^{-100}\)), rasgo que motivó incluir colas pesadas en la simulación sintética posterior.
+\paragraph{Sesgo constante hacia arriba y valores extremos poco comunes.}
+En todos los plazos evaluados (\(3\), \(6\), \(11\) y \(12\) meses), el promedio positivo es altamente significativo (\(p < 10^{-5}\); Tabla~\ref{tab:etapa2_sesgo}), descartando que se trate de coincidencia. Además, aparecen revisiones grandes positivas con más frecuencia de lo que tendría una campana normal (asimetría positiva y curtosis elevada, prueba de normalidad rechazada con \(p < 10^{-100}\)), razón por la cual las simulaciones posteriores incluyeron sacudidas no normales.
 
 \begin{table}[htbp]
 	\centering
-	\caption{Pruebas HAC de sesgo medio y diagnósticos de no normalidad en muestras limpias}
+	\caption{Pruebas estadísticas de sesgo medio y distribución en muestras limpias}
 	\label{tab:etapa2_sesgo}
 	\footnotesize
 	\renewcommand{\arraystretch}{1.15}
@@ -125,56 +125,56 @@ La Tabla~\ref{tab:etapa2_sesgo} presenta las pruebas de sesgo medio y normalidad
 	\fuente{elaboración propia a partir de las pruebas econométricas sobre la muestra depurada. Todos los estadísticos Jarque--Bera arrojan \(p < 10^{-100}\).}
 \end{table}
 
-\paragraph{Autocorrelación, estacionalidad y señal observable en \texorpdfstring{\(v_0\)}{v0}.}
-La Figura~\ref{fig:acf_estac} muestra la autocorrelación de \(Y_t^{(11)}\) y su perfil mensual. Aunque existe fuerte persistencia de corto plazo (\(\hat{\rho}_1 = +0{,}453\), \(\hat{\rho}_2 = +0{,}310\); prueba de \cite{ljung1978} \(Q(12) = 225{,}89\), \(p = 1{,}4\times 10^{-41}\)), esos rezagos inmediatos (\(k < 11\)) todavía no se conocen al publicarse \(v_0(t)\). En cambio, más allá de la frontera observable en tiempo real (\(k \geq 11\)) aparece un pico anual claro en \(\hat{\rho}_{11} = +0{,}234\) (\(p=2{,}7\times 10^{-5}\)), \(\hat{\rho}_{12} = +0{,}386\) (\(p=1{,}3\times 10^{-12}\)) y \(\hat{\rho}_{13} = +0{,}288\) (\(p=2{,}2\times 10^{-7}\)). Además, se observa estacionalidad marcada: los meses del primer trimestre registran las mayores revisiones al alza (enero \(+0{,}731\), febrero \(+0{,}503\) y marzo \(+0{,}734\) p.p.), descendiendo hacia noviembre (\(+0{,}143\)) y diciembre (\(-0{,}083\) p.p.).
+\paragraph{Un ciclo anual repetitivo y diferencias por mes.}
+La Figura~\ref{fig:acf_estac} revela un detalle práctico clave para pronosticar en tiempo real: aunque las revisiones de meses inmediatos están fuertemente conectadas entre sí (\(\hat{\rho}_1 = +0{,}453\); \cite{ljung1978} \(p = 1{,}4\times 10^{-41}\)), esas revisiones recientes todavía no terminan cuando nace un dato nuevo. En cambio, las revisiones que sí ya terminaron \textbf{un año atrás} conservan una relación clara con el mes actual (correlación anual de \(+0{,}386\) en el mes doce, \(p=1{,}3\times 10^{-12}\)). A esto se suma un patrón estacional marcado: el primer trimestre del año recibe las mayores correcciones hacia arriba (enero \(+0{,}731\), febrero \(+0{,}503\) y marzo \(+0{,}734\) puntos), mientras noviembre (\(+0{,}143\)) y diciembre (\(-0{,}083\)) apenas cambian.
 
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=0.95\textwidth]{images/etapa2_acf_pacf.png}
-	\caption{Autocorrelación de \(Y_t^{(11)}\) respecto a la frontera observable en \(v_0\) (izquierda) y estacionalidad mensual (derecha)}
+	\caption{Repetición temporal de la revisión \(Y_t^{(11)}\) respecto a la frontera observable en tiempo real (izquierda) y promedio por mes del año (derecha)}
 	\label{fig:acf_estac}
 	\fuente{elaboración propia a partir de la serie histórica limpia (\(n=350\)).}
 \end{figure}
 
-La Tabla~\ref{tab:etapa2_rt} evalúa qué proporción de la variabilidad de \(Y_t^{(11)}\) se explica únicamente con datos observables en \(v_0(t)\) (\(n=313\) meses con rezagos completos). Los rezagos anuales disponibles \(Y_{t-11}^{(11)}\) y \(Y_{t-12}^{(11)}\) explican un \(R^2 = 0{,}157\) (impulsados por el rezago anual \(Y_{t-12}^{(11)}\) con coeficiente \(+0{,}320\), \(p = 4{,}5\times 10^{-5}\)), y el modelo conjunto que reúne primera publicación, rezagos anuales, revisiones recientes observables e indicadores mensuales alcanza \(R^2 = 0{,}223\) (\(\bar{R}^2 = 0{,}180\), \(F_{\text{NW}} = 4{,}190\), \(p = 2{,}6\times 10^{-7}\)), manteniendo significativo a \(Y_{t-12}^{(11)}\) (\(+0{,}250\), \(p=0{,}0023\)). Estos resultados respaldan la Hipótesis~1 sobre la presencia de estructura sistemática predecible.
+La Tabla~\ref{tab:etapa2_rt} comprueba cuánta variación de las revisiones se explica usando únicamente información ya disponible en el primer anuncio (\(n=313\)). Los dos rezagos anuales completados explican por sí solos un \(15{,}7\%\) (\(R^2 = 0{,}1569\)), y al juntarlos con el dato preliminar, cambios recientes ya publicados y el mes del año se alcanza un \(22{,}3\%\) (\(R^2 = 0{,}2225\), \(p = 2{,}6\times 10^{-7}\)). Este resultado confirma la Hipótesis~1: las revisiones del PBI tienen una señal real predecible.
 
 \begin{table}[htbp]
 	\centering
-	\caption{Asociación diagnóstica de \(Y_t^{(11)}\) con información estrictamente observable en \(v_0(t)\) (\(n=313\))}
+	\caption{Capacidad explicativa usando únicamente información observable en \(v_0(t)\) (\(n=313\))}
 	\label{tab:etapa2_rt}
 	\footnotesize
 	\renewcommand{\arraystretch}{1.15}
 	\begin{tabular}{@{}l c S[table-format=1.4] S[table-format=1.4] S[table-format=1.3] l S[table-format=3.2]@{}}
 		\toprule
-		Especificación observable en \(v_0(t)\) & Regresores & {\(R^2\)} & {\(\bar{R}^2\)} & {\(F_{\text{NW}}\)} & {\(p\)-valor HAC} & {BIC}\\
+		Información observable en \(v_0(t)\) & Variables & {\(R^2\)} & {\(\bar{R}^2\)} & {\(F_{\text{NW}}\)} & {\(p\)-valor HAC} & {BIC}\\
 		\midrule
 		Solo primera publicación (\(y_t^{(v_0)}\)) & 1 & 0.0230 & 0.0198 & 4.999 & \(0{,}0261\) & 677.59\\
-		Rezagos completados (\(Y_{t-11}, Y_{t-12}\)) & 2 & 0.1569 & 0.1515 & 9.197 & \(1{,}3\times 10^{-4}\) & 637.20\\
-		Revisiones recientes (\(s=1,2\)) & 2 & 0.0179 & 0.0115 & 4.120 & \(0{,}0171\) & 684.97\\
-		Estacionalidad mensual (11 indicadores) & 11 & 0.0807 & 0.0471 & 2.249 & \(0{,}0122\) & 716.00\\
+		Revisiones de hace 1 año (\(Y_{t-11}, Y_{t-12}\)) & 2 & 0.1569 & 0.1515 & 9.197 & \(1{,}3\times 10^{-4}\) & 637.20\\
+		Revisiones recientes observables (\(s=1,2\)) & 2 & 0.0179 & 0.0115 & 4.120 & \(0{,}0171\) & 684.97\\
+		Mes del año (estacionalidad) & 11 & 0.0807 & 0.0471 & 2.249 & \(0{,}0122\) & 716.00\\
 		Modelo conjunto observable en \(v_0\) & 16 & 0.2225 & 0.1804 & 4.190 & \(2{,}6\times 10^{-7}\) & 692.30\\
 		\bottomrule
 	\end{tabular}
 	\fuente{elaboración propia con base en las estimaciones en tiempo real del estudio.}
 \end{table}
 
-\paragraph{Eficiencia Mincer--Zarnowitz, no linealidad y heterogeneidad de regímenes y sectores.}
-La Tabla~\ref{tab:etapa2_mz} resume las regresiones de eficiencia \(y_t^{(v_H)} = \alpha + \beta y_t^{(v_0)} + u_t\) \parencite{mincer1969}. En todos los horizontes y períodos se rechaza la eficiencia perfecta (\(\alpha=0, \beta=1\); \(p_{\text{NW}} \leq 0{,}0125\)), principalmente por el intercepto positivo \(\hat{\alpha} > 0\), mientras \(\hat{\beta}\) permanece cercano a \(1\) (\(1{,}018\) global en \(H=11\), \(p_{\beta=1} = 0{,}068\)). Los diagnósticos residuales revelan dos hechos esenciales:
+\paragraph{Estabilidad por épocas, efecto de la pandemia y diferencias entre sectores.}
+Al comprobar mediante la prueba de \textcite{mincer1969} si la primera cifra refleja toda la información sin sesgo (Tabla~\ref{tab:etapa2_mz}), en todas las épocas se rechaza la eficiencia perfecta debido principalmente al empuje constante hacia arriba (\(\hat{\alpha} > 0\)). Al revisar qué cambió con los años (Figura~\ref{fig:regimenes}), sobresalen dos hechos muy importantes:
 \begin{enumerate}
-	\item \textbf{Cambios de volatilidad a lo largo del tiempo:} la prueba de heterocedasticidad condicional \parencite{engle1982} es altamente significativa en el agregado (\(p = 3{,}1\times 10^{-7}\)), al pasar de una alta dispersión entre 1993 y 2012 (\(\text{DE}=1{,}289\) y \(0{,}716\)) a una fase mucho más estable entre 2014 y 2019 (\(\text{DE}=0{,}196\), aunque conservando sesgo positivo de \(+0{,}163\) p.p., \(p = 7{,}2\times 10^{-9}\)), como muestra la Figura~\ref{fig:regimenes}.
-	\item \textbf{Origen pandémico de la no linealidad:} aunque la prueba RESET \parencite{ramsey1969} rechaza la linealidad en la muestra completa de \(H=11\) (\(p=0{,}00096\)), el desglose por períodos demuestra que dicho rechazo ocurre únicamente entre 2020 y 2024 (\(p = 0{,}00030\)), siendo nulo en 2000--2012 (\(p=0{,}911\)) y en 2014--2019 (\(p=0{,}208\)). Por ello, los modelos no lineales se evaluaron revisando por separado períodos estables y el bloque pandémico.
+	\item \textbf{La variabilidad bajó antes de la pandemia:} entre 1993 y 2012 las revisiones oscilaban bastante (desviación estándar de \(1{,}289\) y \(0{,}716\)), pero entre 2014 y 2019 la serie se volvió muy estable (\(\text{DE}=0{,}196\)), aunque mantuvo su sesgo positivo de \(+0{,}163\) puntos \parencite{engle1982}.
+	\item \textbf{Las relaciones curvas aparecen solo por la pandemia:} aunque la prueba de linealidad de \textcite{ramsey1969} marca señal no lineal en la serie completa (\(p=0{,}0010\)), al mirar época por época se descubre que antes de 2020 una relación recta funcionaba perfectamente bien (2000--2012 \(p=0{,}9112\); 2014--2019 \(p=0{,}2085\)). La curvatura aparece únicamente entre 2020 y 2024 (\(p=0{,}0003\)), motivando analizar los modelos antes y después del COVID-19 por separado.
 \end{enumerate}
 
 \begin{table}[htbp]
 	\centering
-	\caption{Regresiones Mincer--Zarnowitz (\(y_t^{(v_H)} = \alpha + \beta y_t^{(v_0)} + u_t\)) y diagnósticos por horizonte y régimen}
+	\caption{Pruebas de eficiencia (\(y_t^{(v_H)} = \alpha + \beta y_t^{(v_0)} + u_t\)) y diagnósticos por época}
 	\label{tab:etapa2_mz}
 	\footnotesize
 	\setlength{\tabcolsep}{4pt}
 	\renewcommand{\arraystretch}{1.15}
 	\begin{tabular}{@{}l S[table-format=3.0] S[table-format=1.3] S[table-format=1.3] S[table-format=1.3] S[table-format=1.3] S[table-format=2.2] l l l@{}}
 		\toprule
-		Muestra / subrégimen & {$n$} & {\(\hat{\alpha}\)} & {\(\text{SE}_{\alpha}\)} & {\(\hat{\beta}\)} & {\(\text{SE}_{\beta}\)} & {\(F_{\text{Wald}}\)} & {\(p_{\text{Wald}}\)} & {\(p_{\text{ARCH}}\)} & {\(p_{\text{RESET}}\)}\\
+		Muestra / época & {$n$} & {\(\hat{\alpha}\)} & {\(\text{SE}_{\alpha}\)} & {\(\hat{\beta}\)} & {\(\text{SE}_{\beta}\)} & {\(F_{\text{Wald}}\)} & {\(p_{\text{Wald}}\)} & {\(p_{\text{ARCH}}\)} & {\(p_{\text{RESET}}\)}\\
 		\midrule
 		Limpia \(H=11\) (global) & 350 & 0.273 & 0.064 & 1.018 & 0.010 & 16.23 & \(1{,}8\times 10^{-7}\) & \(3{,}1\times 10^{-7}\) & \(0{,}0010\)\\
 		Limpia \(H=12\) (global) & 331 & 0.297 & 0.067 & 1.016 & 0.009 & 15.84 & \(2{,}7\times 10^{-7}\) & \(1{,}2\times 10^{-6}\) & \(0{,}0048\)\\
@@ -193,29 +193,31 @@ La Tabla~\ref{tab:etapa2_mz} resume las regresiones de eficiencia \(y_t^{(v_H)} 
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=0.95\textwidth]{images/etapa2_regimenes_evolucion.png}
-	\caption{Evolución temporal de \(Y_t^{(11)}\), media y desviación estándar móviles por regímenes (1993--2024)}
+	\caption{Evolución temporal de \(Y_t^{(11)}\), promedio y dispersión móviles por épocas económicas (1993--2024)}
 	\label{fig:regimenes}
 	\fuente{elaboración propia a partir de la serie limpia del PBI peruano.}
 \end{figure}
 
-Por último, la Figura~\ref{fig:sectores} muestra que el sesgo positivo agregado (\(+0{,}347\) p.p.) es muy distinto entre ramas productivas: se concentra en pesca (\(+2{,}143\), \(\text{DE}=7{,}447\), \(p=0{,}00045\)), sector agropecuario (\(+0{,}821\), \(p=2{,}1\times 10^{-9}\)), comercio (\(+0{,}562\), \(p=0{,}00052\)), manufactura (\(+0{,}525\), \(p=1{,}0\times 10^{-6}\)) y minería (\(+0{,}505\), \(p=3{,}0\times 10^{-8}\)), mientras construcción (\(+0{,}098\), \(p=0{,}462\)), servicios (\(+0{,}076\), \(p=0{,}273\)) y electricidad (\(-0{,}011\), \(p=0{,}753\)) no difieren significativamente de cero.
+Por último, la Figura~\ref{fig:sectores} muestra que las correcciones al alza no ocurren por igual en toda la economía: se concentran en pesca (\(+2{,}143\) puntos), agropecuario (\(+0{,}821\)), comercio (\(+0{,}562\)), manufactura (\(+0{,}525\)) y minería (\(+0{,}505\)), sectores donde es más difícil reunir cifras completas el primer mes. En cambio, construcción (\(+0{,}098\)), servicios (\(+0{,}076\)) y electricidad (\(-0{,}011\)) casi no se corrigen en promedio.
 
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=0.82\textwidth]{images/etapa2_sectores_sesgo.png}
-	\caption{Sesgo medio de revisión por sector económico a horizonte \(H=11\) limpio (IC 95\% HAC)}
+	\caption{Sesgo medio de revisión por sector económico a horizonte \(H=11\) limpio (intervalo de confianza al 95\%)}
 	\label{fig:sectores}
 	\fuente{elaboración propia con base en las series sectoriales verificadas.}
 \end{figure}
 
-\subsection{Desempeño de los modelos}
+\subsection{Desempeño de los modelos prediciendo mes a mes}
 \label{subsec:desempeno_modelos}
 
-Para evaluar la capacidad predictiva real sin usar información futura, se realizaron pronósticos recursivos en ventana móvil expansiva sobre los \(n=250\) orígenes limpios comprendidos entre febrero de 2003 (con \(90\) revisiones históricas previas disponibles) y noviembre de 2024 (con \(339\) revisiones disponibles). En cada fecha, el modelo entrenó exclusivamente con observaciones cuyo horizonte \(H=11\) ya había terminado en o antes de esa publicación. Toda estandarización, carga factorial, selección de orden autorregresivo BIC (\(p \in \{1,2,3\}\)) e hiperparámetros regularizados se estimó dentro de la muestra disponible en ese momento. El criterio BIC eligió dos rezagos anuales (\(p=2\)) en casi la totalidad de los períodos (\(99{,}2\%\) en el modelo AR y \(98{,}8\%\) en ARX), en línea con la correlación anual observada en tiempo real (\(\hat{\rho}_{12}=0{,}386\)), mientras Ridge eligió penalización alta (\(\lambda=500\) como mediana en \(164\) de \(250\) orígenes) para estabilizar regresores sectoriales colineales.
+Para probar qué modelo predice mejor en condiciones reales, los doce competidores emitieron pronósticos mes a mes durante más de veinte años: \(250\) fechas entre febrero de 2003 y noviembre de 2024. En cada mes solo se entrenaron con el historial ya cerrado hasta ese día, manteniendo aparte los últimos \(60\) meses (diciembre de 2019 a noviembre de 2024) para el examen final. De forma automática dentro del pasado, el modelo autorregresivo eligió casi siempre mirar los dos años anteriores (\(99{,}2\%\) de las veces) y Ridge aplicó una regularización alta (\(\lambda=500\)) para equilibrar las variables sectoriales.
+
+La Tabla~\ref{tab:metricas} resume los errores globales de todo el período, y la Tabla~\ref{tab:etapa3_regimenes} separa lo ocurrido antes de la pandemia y durante los últimos cinco años. En la lectura global, \textbf{el menor error correspondió a las características aleatorias de Fourier (RFF, \(\text{RMSE}=0{,}456\))}, seguidas por la red clásica ESN de veinte neuronas (\(\text{RMSE}=0{,}472\)) y recién en tercer lugar por el modelo cuántico QRC (\(\text{RMSE}=0{,}478\)).
 
 \begin{table}[htbp]
 	\centering
-	\caption{Desempeño predictivo fuera de muestra global de referentes clásicos, reservorios y QRC sobre \(Y_t^{(11)}\) (2003m2--2024m11, \(n=250\))}
+	\caption{Desempeño predictivo global de los doce modelos sobre \(Y_t^{(11)}\) (2003m2--2024m11, \(n=250\))}
 	\label{tab:metricas}
 	\footnotesize
 	\renewcommand{\arraystretch}{1.15}
@@ -237,21 +239,26 @@ Para evaluar la capacidad predictiva real sin usar información futura, se reali
 		Reservorio cuántico QRC (5 qubits)\textsuperscript{b} & 0.478 & 0.352 & -0.102 & 0.063 & {\([-0{,}208;\; +0{,}020]\), \(p_{\text{DM}}=0{,}196\)}\\
 		\bottomrule
 	\end{tabular}
-	\caption*{\footnotesize \textit{Nota:} \textsuperscript{a}Implementación exacta mediante árboles CART acotados (\texttt{GBDT\_NumPy} en los gráficos). \textsuperscript{b}Promedios deterministas sobre cinco semillas (\texttt{101, 202, 303, 404, 505}); \texttt{QRC\_Ising5} emplea simulación exacta por matriz densidad; en las figuras, los nombres abreviados corresponden a \texttt{Zero}, \texttt{BiasCorr\_Mean}, \texttt{BiasCorr\_Roll60}, \texttt{AR\_BIC}, \texttt{ARX\_BIC}, \texttt{Ridge}, \texttt{DFM\_Factor\_Ridge}, \texttt{GBDT\_NumPy}, \texttt{RFF\_20}, \texttt{ESN\_20}, \texttt{ESN\_64} y \texttt{QRC\_Ising5}. Intervalos bootstrap por bloques \parencite{politis1992} (\(L=12\), \(B=2000\)); \(p_{\text{DM}}\) bilateral de \textcite{harvey1997} sobre pérdida cuadrática.}
+	\caption*{\footnotesize \textit{Nota:} \textsuperscript{a}Árboles CART acotados (\texttt{GBDT\_NumPy} en gráficos). \textsuperscript{b}Promedios deterministas sobre cinco semillas (\texttt{101, 202, 303, 404, 505}); \texttt{QRC\_Ising5} usa simulación exacta por matriz densidad. Intervalos bootstrap por bloques \parencite{politis1992} (\(L=12\), \(B=2000\)); valor \(p_{\text{DM}}\) bilateral de \textcite{harvey1997}.}
 	\fuente{elaboración propia con base en las evaluaciones fuera de muestra del estudio (2003--2024).}
 \end{table}
 
-Los resultados globales de la Tabla~\ref{tab:metricas} muestran una clara diferencia entre el tramo previo al COVID-19 (febrero de 2003 a noviembre de 2019, \(n=190\)) y el bloque final congelado (diciembre de 2019 a noviembre de 2024, \(n=60\)), resumida en la Tabla~\ref{tab:etapa3_regimenes} y la Figura~\ref{fig:etapa3_oos}. Antes de diciembre de 2019, la regresión Ridge encabeza las referencias lineales (\(\text{RMSE}=0{,}503\), \(\text{MAE}=0{,}375\), \(R^2_{\text{OOS}}=+0{,}094\)), reduciendo el error en \(-0{,}047\) puntos porcentuales frente a la media histórica expansiva (\(\text{DM}_{\text{HLN}}=-2{,}724\), \(p=0{,}0071\); IC 95\% \([-0{,}079;\;-0{,}016]\)) y en \(-0{,}030\) frente a los árboles potenciados (\(\text{DM}_{\text{HLN}}=-2{,}655\), \(p=0{,}0086\)). Asimismo, en el tramo 2014--2019 previo a la pandemia (\(n=71\)), la corrección móvil de sesenta meses logra \(\text{RMSE}=0{,}210\) con sesgo casi nulo (\(+0{,}003\)).
+Al separar los períodos normales de la pandemia en la Tabla~\ref{tab:etapa3_regimenes} (y las Figuras~\ref{fig:etapa3_oos}--\ref{fig:etapa4_estabilidad}), la historia queda completamente clara:
+\begin{enumerate}
+	\item \textbf{En épocas normales (2003--2019), la regresión Ridge funcionó bien:} antes del COVID-19, Ridge fue el mejor modelo lineal clásico (\(\text{RMSE}=0{,}503\)), superando con claridad al promedio histórico simple (\(0{,}550\), \(p=0{,}0071\)) y a los árboles de decisión (\(0{,}533\), \(p=0{,}0086\)). Incluso entre 2014 y 2019 el simple promedio móvil de sesenta meses logró \(\text{RMSE}=0{,}210\) con sesgo casi nulo.
+	\item \textbf{Durante la pandemia (2020--2024), las fórmulas lineales se dispararon y los modelos acotados evitaron el error:} en abril de 2020 la primera cifra del PBI cayó \(-40{,}5\%\) y en abril de 2021 rebotó \(+58{,}5\%\). Al aplicar una recta sobre números tan extremos, Ridge predijo correcciones absurdas (\(-1{,}464\) y \(+4{,}020\) puntos porcentuales, cuando la revisión real fue \(+1{,}4\) y \(+0{,}8\)), elevando su error a \(\text{RMSE}=0{,}731\). Eso también distorsionó la prueba anidada de \textcite{clark2007} (\(\text{CW}=3{,}554\)). En cambio, los \textbf{árboles acotados (GBDT)} limitaron sus pronósticos (\(+0{,}241\) y \(+0{,}909\)) y obtuvieron el mejor desempeño del tramo final (\(\text{RMSE}=0{,}349\)), superando tanto a Ridge como a la referencia nula.
+	\item \textbf{El modelo cuántico (QRC) frenó los extremos, pero no venció a los equivalentes clásicos:} gracias a que sus veinte mediciones quedan acotadas entre \(-1\) y \(+1\), QRC logró el segundo mejor error en pandemia (\(\text{RMSE}=0{,}363\)) y superó globalmente a la simple corrección por promedio histórico (\(0{,}478\) vs. \(0{,}513\), \(p=0{,}0175\)). Sin embargo, no venció a sus controles clásicos equivalentes: empató estadísticamente con ESN de veinte neuronas (\(0{,}472\), \(p=0{,}730\)) y perdió frente a RFF (\(0{,}456\), \(p=0{,}0146\) global y \(p=0{,}0038\) antes de la pandemia). Además, aumentar ESN de \(20\) a \(64\) neuronas empeoró el resultado (\(0{,}508\), \(p=0{,}046\)), probando que las series económicas cortas premian modelos compactos. También se observó que QRC varía bastante según la semilla aleatoria usada (promedio individual \(0{,}5160 \pm 0{,}0316\)), por lo que su resultado final dependió de promediar cinco ejecuciones.
+\end{enumerate}
 
 \begin{table}[htbp]
 	\centering
-	\caption{Desempeño comparativo entre tramo pre-congelado (2003m2--2019m11) y bloque congelado final (2019m12--2024m11)}
+	\caption{Desempeño antes del COVID-19 (2003m2--2019m11) frente al tramo final congelado (2019m12--2024m11)}
 	\label{tab:etapa3_regimenes}
 	\footnotesize
 	\renewcommand{\arraystretch}{1.12}
 	\begin{tabular}{@{}>{\raggedright\arraybackslash}p{4.5cm}S[table-format=1.3]S[table-format=1.3]S[table-format=-1.3]S[table-format=1.3]S[table-format=1.3]S[table-format=-1.3]@{}}
 		\toprule
-		& \multicolumn{3}{c}{Pre-congelado (\(n=190\))} & \multicolumn{3}{c}{Bloque congelado (\(n=60\))}\\
+		& \multicolumn{3}{c}{Pre-pandemia (\(n=190\))} & \multicolumn{3}{c}{Tramo final (\(n=60\))}\\
 		\cmidrule(lr){2-4}\cmidrule(lr){5-7}
 		Modelo & {RMSE} & {MAE} & {$R^2_{\text{OOS}}$} & {RMSE} & {MAE} & {$R^2_{\text{OOS}}$}\\
 		\midrule
@@ -269,139 +276,122 @@ Los resultados globales de la Tabla~\ref{tab:metricas} muestran una clara difere
 		Reservorio cuántico QRC (5 qubits) & 0.509 & 0.379 & 0.070 & 0.363 & 0.266 & 0.013\\
 		\bottomrule
 	\end{tabular}
-	\fuente{elaboración propia con base en los resultados fuera de muestra por regímenes (2003--2024).}
+	\fuente{elaboración propia con base en los resultados fuera de muestra por épocas (2003--2024).}
 \end{table}
 
-Por el contrario, en el bloque congelado (\(n=60\)), todos los modelos lineales que emplean directamente la primera publicación \(y_0\) o factores sectoriales sin límite fallan al extrapolar fuera del rango histórico durante el choque y rebote del COVID-19: en abril de \(2020\) (\(y_0=-40{,}5\)\%, revisión \(Y=+1{,}4\) p.p.) Ridge pronostica \(-1{,}464\) p.p., y en abril de \(2021\) (\(y_0=+58{,}5\)\%, \(Y=+0{,}8\) p.p.) proyecta \(+4{,}020\) p.p., elevando su RMSE a \(0{,}731\) (\(R^2_{\text{OOS}}=-3{,}001\)). En cambio, los árboles potenciados acotados limitan esas proyecciones (\(+0{,}241\) y \(+0{,}909\) p.p.) y logran el menor error del bloque final (\(\text{RMSE}=0{,}349\), \(\text{MAE}=0{,}237\), \(R^2_{\text{OOS}}=+0{,}087\)), superando con intervalo bootstrap al 95\% estrictamente favorable tanto a Ridge (\([-0{,}581;\;-0{,}020]\)) como a la referencia nula (\([-0{,}215;\;-0{,}026]\)) y levemente a la media expansiva (\([-0{,}052;\;-0{,}00003]\)). Esto explica por qué la prueba RESET rechazó la linealidad únicamente entre 2020 y 2024: no por ausencia de relación lineal en años regulares, sino por la extrapolación extrema de los regresores lineales frente a caídas y rebotes atípicos de \(y_0\). Asimismo, aunque la prueba de \textcite{clark2007} arroja valores positivos para Ridge frente a la media expansiva (\(\text{CW}=3{,}554\), \(p=0{,}00019\)), dicho estadístico queda artificialmente amplificado por las desviaciones extremas de 2020--2021.
+En síntesis, la capacidad de contener choques como los de 2020--2021 provino simplemente del acotamiento no lineal de las variables, y no de una ventaja propia de la mecánica cuántica (las pruebas numéricas previas confirmaron asimismo fidelidad física exacta del simulador, con errores inferiores a \(10^{-14}\), y cero uso de datos futuros).
 
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=0.96\textwidth]{images/etapa3_oos_predicciones.png}
-	\caption{Pronósticos causales fuera de muestra de referentes clásicos en esquema expansivo (panel superior) y diferencia acumulada de pérdida cuadrática respecto a Ridge (panel inferior), 2003m2--2024m11.}
+	\caption{Pronósticos mensuales en tiempo real de modelos clásicos (arriba) y error acumulado frente a Ridge (abajo), 2003m2--2024m11.}
 	\label{fig:etapa3_oos}
 \end{figure}
 
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=0.96\textwidth]{images/etapa3_rmse_regimenes.png}
-	\caption{RMSE fuera de muestra por régimen económico y bloque congelado final para las ocho referencias clásicas.}
+	\caption{Error RMSE por época económica y tramo final para los ocho referentes clásicos.}
 	\label{fig:etapa3_regimenes}
 \end{figure}
-
-Al comparar los modelos de reservorio, se evaluó la arquitectura cuántica confirmatoria de cinco qubits (espacio de estados de dimensión \(d=32\), dinámica fija de espines acoplados y veinte observables de Pauli) frente a controles clásicos equivalentes de igual dimensión de lectura (ESN de veinte neuronas y características aleatorias RFF) y frente a una ESN ampliada de sesenta y cuatro neuronas bajo exactamente los mismos \(250\) orígenes y cinco semillas. Las pruebas numéricas previas comprobaron la exactitud del simulador (error de unitariedad \(\le 3{,}13\times 10^{-15}\) y conservación de traza \(\le 4{,}46\times 10^{-16}\)) y la ausencia total de filtración de datos futuros.
-
-El análisis conjunto de las Tablas~\ref{tab:metricas} y~\ref{tab:etapa3_regimenes} y de las Figuras~\ref{fig:etapa4_oos}--\ref{fig:etapa4_estabilidad} conduce a tres conclusiones claras:
-\begin{enumerate}
-	\item \textbf{Contención efectiva de extremos pandémicos:} al transformar las entradas mediante ángulos y expectativas acotadas en \([-1,1]\), el reservorio cuántico evita la extrapolación excesiva de Ridge en 2020--2021 y alcanza el segundo mejor desempeño del tramo final (\(\text{RMSE}=0{,}363\), \(R^2_{\text{OOS}}=+0{,}013\)), superando en la muestra completa a la corrección clásica por media expansiva (\(\text{DM}_{\text{HLN}}=-2{,}391\), \(p=0{,}0175\); IC 95\% \([-0{,}060;\;-0{,}010]\); y \(p=0{,}00031\) en MAE).
-	\item \textbf{Paridad o desventaja frente a controles clásicos acotados:} al contrastar métodos no lineales acotados de igual tamaño de lectura (\(m=20\)), el reservorio cuántico (\(\text{RMSE}=0{,}478\)) no supera a sus referentes clásicos equivalentes. Las características aleatorias RFF (\(\text{RMSE}=0{,}456\), \(R^2_{\text{OOS}}=+0{,}149\)) superan puntualmente a QRC en el total muestral (\(\text{DM}_{\text{HLN}}=2{,}459\), \(p=0{,}0146\); IC 95\% \([+0{,}006;\;+0{,}038]\)) y antes de la pandemia (\(\text{RMSE}=0{,}480\) frente a \(0{,}509\), \(p=0{,}0038\)), mientras que la red clásica ESN de veinte neuronas (\(\text{RMSE}=0{,}472\)) resulta estadísticamente equivalente (\(\text{DM}_{\text{HLN}}=0{,}346\), \(p=0{,}730\); IC 95\% \([-0{,}032;\;+0{,}038]\)). Además, ampliar la ESN a sesenta y cuatro neuronas empeora la precisión respecto a veinte neuronas (\(\text{RMSE}=0{,}508\) frente a \(0{,}472\), \(p=0{,}046\)), confirmando que las series mensuales cortas favorecen lecturas sencillas.
-	\item \textbf{Variabilidad entre semillas y papel del promediado:} tomadas por separado, las cinco semillas de QRC exhiben mayor dispersión (\(\text{RMSE}=0{,}5160 \pm 0{,}0316\), rango \(0{,}488\text{--}0{,}567\)) que RFF (\(0{,}4860 \pm 0{,}0141\)) y ESN (\(0{,}4910 \pm 0{,}0107\)); el promedio sobre cinco semillas reduce la varianza y sitúa el error conjunto en \(\text{RMSE}=0{,}478\). Conforme a las reglas fijadas de interpretación, la mejora frente a modelos lineales proviene de la acotación no lineal de las variables y no de una ventaja cuántica propia.
-\end{enumerate}
 
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=0.96\textwidth]{images/etapa4_reservorios_oos.png}
-	\caption{Pronósticos causales fuera de muestra (panel superior) y pérdida cuadrática acumulada relativa frente a Ridge (panel inferior) para QRC, ESN, RFF y GBDT (2003m2--2024m11).}
+	\caption{Pronósticos en tiempo real (arriba) y pérdida acumulada frente a Ridge (abajo) para QRC, ESN, RFF y GBDT (2003m2--2024m11).}
 	\label{fig:etapa4_oos}
 \end{figure}
 
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=0.96\textwidth]{images/etapa4_estabilidad_regimenes.png}
-	\caption{Comparación de RMSE entre bloque pre-congelado y bloque congelado (izquierda) y dispersión entre cinco semillas frente al promedio (derecha).}
+	\caption{Comparación de RMSE entre período pre-pandemia y tramo final (izquierda) y dispersión entre cinco semillas frente al promedio (derecha).}
 	\label{fig:etapa4_estabilidad}
 \end{figure}
 
-\subsection{Resultados del experimento sintético}
+\subsection{Qué muestran las simulaciones calibradas y cuánta ventaja es detectable}
 \label{subsec:experimento_sintetico}
 
-Se calibró el modelo paramétrico de la Ecuación~\ref{eq:dgp} sobre la muestra peruana completa con regresores observables (\(n=314\)) aplicando \(300\) réplicas bootstrap por bloques (\(L=12\)), con lo que se obtuvieron las estimaciones \(\hat{\mu}=0{,}203 \pm 0{,}051\), \(\hat{\phi}_{12}=0{,}341 \pm 0{,}082\), \(\|\hat{\boldsymbol{\gamma}}\|_2=0{,}088 \pm 0{,}111\) y \(\hat{\sigma}_{\varepsilon}=0{,}655 \pm 0{,}074\). Propagando esta incertidumbre, se simularon doce escenarios definidos de antemano con veinte repeticiones independientes cada uno (\(N_{\text{OOS}}=80\) pronósticos causales por repetición), evaluando la mejora porcentual relativa
+Como una serie histórica única de \(250\) meses puede ocultar situaciones favorables o desfavorables, se construyeron doce escenarios simulados inspirados en los parámetros reales del PBI peruano (\(300\) remuestreos de incertidumbre por bloques sobre \(n=314\) observaciones; Tabla~\ref{tab:etapa6_sintetico} y Figura~\ref{fig:etapa6_delta}). En cada escenario se ejecutaron veinte simulaciones midiendo la mejora porcentual de QRC respecto a cada competidor \(B\):
 \[
 \Delta_B(\theta)=
 100\left(
 \frac{\RMSE_{B}(\theta)-\RMSE_{\QRC}(\theta)}
 {\RMSE_{B}(\theta)}
-\right)
+\right),
 \]
-y la región favorable
-\[
-\mathcal{A}=
-\left\{\theta:
-\Delta_B(\theta)\geq\delta_{\min}
-\ \text{y el límite inferior del IC 95\% Monte Carlo es positivo}
-\right\}.
-\]
-El umbral práctico mínimo se fijó en \(\delta_{\min}=2{,}0\%\) (equivalente a \(0{,}010\text{--}0{,}013\) p.p. de RMSE), en consonancia con la escala de incertidumbre observada en los datos reales.
+considerando favorable un escenario (\(\theta \in \mathcal{A}\)) solo cuando la mejora superaba el \(2{,}0\%\) mínimo y su intervalo de confianza era positivo.
 
 \begin{table}[htbp]
 	\centering
-	\caption{Experimento sintético calibrado: RMSE promedio, mejora relativa \(\Delta(\theta)\) de QRC y región favorable (\(\delta_{\min}=2{,}0\%\))}
+	\caption{Simulaciones calibradas: error RMSE promedio, mejora relativa \(\Delta(\theta)\) de QRC y escenarios favorables (\(\delta_{\min}=2{,}0\%\))}
 	\label{tab:etapa6_sintetico}
 	\footnotesize
 	\renewcommand{\arraystretch}{1.12}
 	\begin{tabular}{@{}>{\raggedright\arraybackslash}p{3.9cm}S[table-format=1.3]S[table-format=1.3]S[table-format=1.3]S[table-format=1.3]S[table-format=-2.2]S[table-format=-2.2]c@{}}
 		\toprule
-		Escenario & {Ridge} & {RFF} & {ESN} & {QRC} & {\(\Delta_{\text{Ridge}}\) (\%)} & {\(\Delta_{\text{ESN}}\) (\%)} & {\(\theta \in \mathcal{A}\)?}\\
+		Escenario & {Ridge} & {RFF} & {ESN} & {QRC} & {\(\Delta_{\text{Ridge}}\) (\%)} & {\(\Delta_{\text{ESN}}\) (\%)} & {Favorable?}\\
 		\midrule
 		Calibrado Perú (\(T=350\)) & 0.606 & 0.617 & 0.620 & 0.652 & -7.49 & -5.08 & No\\
 		Muestra mediana (\(T=700\)) & 0.619 & 0.629 & 0.638 & 0.669 & -8.53 & -5.29 & No\\
 		Muestra larga (\(T=1400\)) & 0.642 & 0.649 & 0.662 & 0.695 & -8.42 & -5.06 & No\\
 		Persistencia baja (\(\phi=0{,}10\)) & 0.640 & 0.642 & 0.645 & 0.647 & -1.32 & -0.45 & No\\
 		Persistencia alta (\(\phi=0{,}65\)) & 0.664 & 0.701 & 0.724 & 0.801 & -20.90 & -11.16 & No\\
-		SNR baja (\(0{,}5\times\)) & 0.655 & 0.665 & 0.669 & 0.680 & -3.62 & -1.32 & No\\
-		SNR alta (\(2{,}5\times\)) & 0.638 & 0.652 & 0.665 & 0.705 & -11.62 & -6.67 & No\\
-		Gaussiano sin ARCH (\(T=350\)) & 0.630 & 0.646 & 0.649 & 0.672 & -6.39 & -3.45 & No\\
+		Señal baja (\(0{,}5\times\)) & 0.655 & 0.665 & 0.669 & 0.680 & -3.62 & -1.32 & No\\
+		Señal alta (\(2{,}5\times\)) & 0.638 & 0.652 & 0.665 & 0.705 & -11.62 & -6.67 & No\\
+		Ruido normal sin cambios (\(T=350\)) & 0.630 & 0.646 & 0.649 & 0.672 & -6.39 & -3.45 & No\\
 		No lineal + choques (\(T=350\)) & 0.615 & 0.621 & 0.620 & 0.634 & -2.99 & -2.13 & No\\
 		No lineal + choques (\(T=1000\)) & 0.624 & 0.618 & 0.617 & 0.633 & -1.36 & -2.41 & No\\
-		Baja dim. efectiva (\(d=2\)) & 0.622 & 0.631 & 0.631 & 0.656 & -5.87 & -4.05 & No\\
-		Alta dim. efectiva (\(d=8\)) & 0.693 & 0.715 & 0.723 & 0.753 & -8.48 & -4.14 & No\\
+		Pocas variables (\(d=2\)) & 0.622 & 0.631 & 0.631 & 0.656 & -5.87 & -4.05 & No\\
+		Muchas variables (\(d=8\)) & 0.693 & 0.715 & 0.723 & 0.753 & -8.48 & -4.14 & No\\
 		\bottomrule
 	\end{tabular}
-	\fuente{elaboración propia con base en las simulaciones calibradas del estudio (\(20\) réplicas por escenario).}
+	\fuente{elaboración propia con base en las simulaciones calibradas del estudio (\(20\) repeticiones por escenario).}
 \end{table}
 
-La Tabla~\ref{tab:etapa6_sintetico} y la Figura~\ref{fig:etapa6_delta} confirman tres regularidades consistentes:
+Las conclusiones de los doce mundos simulados son consistentes:
 \begin{enumerate}
-	\item \textbf{Región favorable vacía (\(\mathcal{A}=\emptyset\)):} con una semilla individual, el modelo cuántico no supera al umbral favorable en ninguno de los doce escenarios ni frente a Ridge ni frente a ESN o RFF. Incluso con \(T=1400\) períodos, su brecha respecto a Ridge ronda \(-8{,}4\)\%, confirmando que su ventaja sobre Ridge en los datos reales obedeció al colapso pandémico lineal y al promediado entre semillas.
-	\item \textbf{Pérdida de precisión con persistencia lineal elevada:} en el escenario de persistencia alta (\(\phi=0{,}65\)), la desventaja de QRC frente a Ridge alcanza \(-20{,}90\)\% (\(-11{,}16\)\% frente a ESN), ya que codificar el rezago lineal \(Y_{t-12}\) dentro de ángulos no lineales acoplados introduce distorsión.
-	\item \textbf{Dinámicas no lineales con muestra amplia:} cuando el proceso incorpora saturación no lineal con choques extremos y \(T=1000\), ESN (\(\text{RMSE}=0{,}617\)) y RFF (\(0{,}618\)) superan a la regresión Ridge (\(0{,}624\)), acortándose la distancia de QRC respecto a Ridge hasta \(-1{,}36\)\%, pero ambos controles clásicos retienen una ventaja cercana al \(2{,}2\text{--}2{,}4\)\% sobre QRC.
+	\item \textbf{Ningún escenario favoreció al modelo cuántico (\(\mathcal{A}=\emptyset\)):} QRC no ganó en ninguno de los doce casos probados, ni siquiera al aumentar el historial a \(1\,400\) meses (donde siguió \(8{,}4\%\) por detrás de Ridge). Esto confirma que en el Perú no venció a Ridge por mérito cuántico, sino porque la pandemia hizo fallar las rectas lineales y por promediar cinco semillas.
+	\item \textbf{Donde hay memoria lineal fuerte, QRC pierde más:} cuando el patrón anual es intenso (\(\phi=0{,}65\)), transformar las variables en ángulos cuánticos distorsiona esa relación simple y QRC queda \(20{,}90\%\) por detrás de Ridge.
+	\item \textbf{Con curvas y choques fuertes también ganan los modelos clásicos:} cuando la economía artificial incluye choques bruscos y \(1\,000\) meses, ESN (\(0{,}617\)) y RFF (\(0{,}618\)) superan a Ridge (\(0{,}624\)) y mantienen cerca de \(2{,}3\%\) de ventaja sobre QRC (\(0{,}633\)).
 \end{enumerate}
 
-Adicionalmente, conforme al Anexo~\ref{app:potencia}, se estimaron el efecto mínimo detectable (MDE al \(80\)\% de potencia, \(\alpha=0{,}05\)) y las curvas de potencia empíricas por bootstrap sobre la muestra peruana (\(n=250\), Figura~\ref{fig:etapa6_potencia}). Frente a Ridge, la alta varianza generada por la pandemia (\(\text{SE}_{\text{NW}}=0{,}0676\)) eleva el MDE a \(36{,}1\)\% de reducción en RMSE (potencia de solo \(15\text{--}21\)\% para ganancias reales de \(2\text{--}12\)\%). Frente a referentes más estables, el MDE es de \(7{,}6\)\% contra la media expansiva, \(11{,}1\)\% contra ESN y \(5{,}7\)\% contra RFF (\(8{,}9\)\% contra Ridge antes de la pandemia). Por tanto, el tamaño muestral disponible ofrece baja potencia (\(\approx 8\text{--}21\)\%) para distinguir mejoras pequeñas cercanas al \(2\)\%.
+Además, se calculó cuánta ventaja real haría falta en los \(250\) meses peruanos para que las pruebas estadísticas la detecten con seguridad al \(80\%\) (Figura~\ref{fig:etapa6_potencia} y Anexo~\ref{app:potencia}). Debido a la fuerte agitación de la pandemia, frente a Ridge se necesitaría una mejora enorme de \(36{,}1\%\) para probar ventaja con certeza; y frente a los controles clásicos más estables se necesitaría entre \(5{,}7\%\) (RFF), \(7{,}6\%\) (media histórica) y \(11{,}1\%\) (ESN). En otras palabras, con el tamaño actual de la serie peruana no es posible distinguir con seguridad mejoras pequeñas del orden del \(2\%\).
 
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=0.96\textwidth]{images/etapa6_delta_escenarios.png}
-	\caption{Mejora relativa \(\Delta(\theta)\) de QRC e intervalos de confianza al 95\% Monte Carlo en los doce escenarios sintéticos calibrados.}
+	\caption{Diferencia porcentual relativa \(\Delta(\theta)\) de QRC e intervalos al 95\% en los doce escenarios simulados.}
 	\label{fig:etapa6_delta}
 \end{figure}
 
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=0.96\textwidth]{images/etapa6_potencia_mde.png}
-	\caption{Efecto mínimo detectable al 80\% de potencia (izquierda) y curvas de potencia bootstrap sobre la muestra peruana de \(n=250\) orígenes (derecha).}
+	\caption{Mejora mínima detectable con 80\% de seguridad (izquierda) y probabilidad de detección según tamaño real de ganancia en \(n=250\) orígenes (derecha).}
 	\label{fig:etapa6_potencia}
 \end{figure}
 
-\subsection{Resultados del análisis económico}
+\subsection{Por qué no se realizó la evaluación económica}
 \label{subsec:analisis_economico}
 
-El ejercicio económico exploratorio no se ejecutó en aplicación estricta de la regla de decisión fijada en la metodología y el Anexo~\ref{app:voi}. Dado que la arquitectura cuántica no superó tras corrección por multiplicidad a la regresión Ridge ni a los controles clásicos equivalentes —siendo superada puntualmente por RFF (\(p=0{,}0146\) sin ajuste) y empatando con ESN (\(p=0{,}730\))— y al resultar vacía la región favorable sintética (\(\mathcal{A}=\emptyset\)), no se realizó simulación monetizada ni se atribuyó valor económico diferencial a QRC.
+De acuerdo con la regla fijada desde el inicio (Anexo~\ref{app:voi}), solo se estimarían ganancias o pérdidas monetarias si QRC superaba de forma clara y robusta tanto a Ridge como a sus pares clásicos. Al no ganar ninguna comparación múltiple, quedar por detrás de RFF y no mostrar ventaja en las simulaciones (\(\mathcal{A}=\emptyset\)), la evaluación económica se detuvo para no atribuir beneficios económicos artificiales.
 
-\subsection{Síntesis inferencial, ajuste por multiplicidad y \textit{Model Confidence Set}}
+\subsection{Pruebas conjuntas finales para evitar falsos positivos}
 \label{subsec:inferencia_integrada_etapa8}
 
-Para cerrar la evaluación comparativa, se integraron los doce modelos mediante tres procedimientos formales: (i)~corrección por comparaciones múltiples de \textcite{holm1979} y de tasa de falsos descubrimientos de \textcite{benjamini1995} sobre la familia confirmatoria de siete contrastes de QRC; (ii)~clasificación en las cuatro categorías preespecificadas en el diseño; y (iii)~estimación del conjunto de confianza de modelos (\textit{Model Confidence Set}, MCS) de \textcite{hansen2011} bajo pérdidas cuadrática (MSE) y absoluta (MAE) en los alcances global (\(n=250\)), pre-congelado (\(n=190\)) y bloque final congelado (\(n=60\)).
+Cuando se comparan varios modelos a la vez, algún resultado puede parecer significativo simplemente por suerte. Para evitarlo, la Tabla~\ref{tab:etapa8_holm} aplica correcciones por comparaciones múltiples \parencite{holm1979,benjamini1995} sobre los siete contrastes principales de QRC, y la Tabla~\ref{tab:etapa8_mcs} (junto con la Figura~\ref{fig:etapa8_mcs}) aplica el método del conjunto de confianza de modelos de \textcite{hansen2011}, que agrupa a todos los modelos que estadísticamente siguen empatados en precisión.
 
 \begin{table}[htbp]
 	\centering
-	\caption{Familia confirmatoria del reservorio cuántico (QRC) con ajuste por comparaciones múltiples}
+	\caption{Comparaciones directas de QRC con ajuste por pruebas múltiples}
 	\label{tab:etapa8_holm}
 	\scriptsize
 	\setlength{\tabcolsep}{3.5pt}
 	\renewcommand{\arraystretch}{1.14}
 	\begin{tabular}{@{}>{\raggedright\arraybackslash}p{3.1cm}S[table-format=1.3]S[table-format=-1.3]cS[table-format=1.4]S[table-format=1.4]S[table-format=1.4]>{\raggedright\arraybackslash}p{2.7cm}@{}}
 		\toprule
-		Comparador (\(n=250\)) & {\(\text{RMSE}\)} & {\(\Delta\)} & {\(\text{IC}_{95\%}\) boot.} & {\(p_{\text{DM}}\)} & {\(p_{\text{Holm}}\)} & {\(p_{\text{BH}}\)} & Clasificación formal\\
+		Comparador (\(n=250\)) & {\(\text{RMSE}\)} & {\(\Delta\)} & {\(\text{IC}_{95\%}\) boot.} & {\(p_{\text{DM}}\)} & {\(p_{\text{Holm}}\)} & {\(p_{\text{BH}}\)} & Resultado formal\\
 		\midrule
 		Referencia nula (\(\widehat{Y}=0\)) & 0.574 & -0.096 & \([-0{,}191;\, 0{,}002]\) & 0.1131 & 0.5656 & 0.2640 & Resultado inconcluso\\
 		Corrección media exp. & 0.513 & -0.034 & \([-0{,}060;\, -0{,}010]\) & 0.0175 & 0.1052 & 0.0614 & Mejora sin sig. Holm\\
@@ -411,25 +401,25 @@ Para cerrar la evaluación comparativa, se integraron los doce modelos mediante 
 		ESN clásica (20 neuronas) & 0.472 & 0.006 & \([-0{,}032;\, 0{,}038]\) & 0.7296 & 0.8094 & 0.7296 & Resultado inconcluso\\
 		Características aleatorias (RFF) & 0.456 & 0.022 & \([+0{,}006;\, +0{,}038]\) & 0.0146 & 0.1023 & 0.0614 & Desventaja sin sig. Holm\\
 		\midrule
-		\multicolumn{8}{@{}l}{\textit{Único contraste significativo tras Holm en los subperíodos (pre-congelado \(n=190\)):}}\\
+		\multicolumn{8}{@{}l}{\textit{Único contraste significativo tras Holm en los subperíodos (pre-pandemia \(n=190\)):}}\\
 		Características RFF (pre-COVID) & 0.480 & 0.029 & \([+0{,}012;\, +0{,}046]\) & 0.0038 & 0.0265 & 0.0265 & Evidencia desfavorable\\
 		\bottomrule
 	\end{tabular}
 	\fuente{elaboración propia a partir de las pruebas comparativas del estudio. \(\text{RMSE}_{\text{QRC}}=0{,}478\) en \(n=250\) y \(0{,}509\) en \(n=190\); \(\Delta=\text{RMSE}_{\text{QRC}}-\text{RMSE}_{\text{comp}}<0\) favorece a QRC.}
 \end{table}
 
-La Tabla~\ref{tab:etapa8_holm} confirma que ninguno de los siete contrastes globales supera el umbral de significancia después de corregir por multiplicidad (\(p_{\text{Holm}} \ge 0{,}1023\)). Frente a la corrección por media expansiva, la mejora puntual (\(-0{,}034\) p.p., \(p=0{,}0175\) sin ajuste) queda en \(p_{\text{Holm}}=0{,}1052\) y \(p_{\text{BH}}=0{,}0614\). En sentido inverso, RFF supera puntualmente a QRC en el total muestral (\(p=0{,}0146\) sin ajuste; \(p_{\text{Holm}}=0{,}1023\)) y alcanza ventaja significativa incluso tras ajuste estricto de Holm en el tramo previo a la pandemia de \(n=190\) (\(p_{\text{Holm}}=0{,}0265\), \(\text{IC}_{95\%}=[+0{,}012;\, +0{,}046]\)), constituyendo el único caso de evidencia desfavorable firme contra QRC entre los veintiún contrastes evaluados. En el bloque congelado (\(n=60\)), los siete contrastes arrojan \(p_{\text{Holm}}=1{,}000\) debido al menor tamaño muestral y la varianza pandémica.
+La Tabla~\ref{tab:etapa8_holm} deja dos certezas simples: primero, la pequeña ventaja puntual de QRC sobre el promedio histórico (\(p=0{,}0175\) aislado) pierde validez al corregir por comparaciones múltiples (\(p_{\text{Holm}}=0{,}1052\)); segundo, el único contraste firme tras corrección ocurre \textbf{en contra de QRC}, pues antes de la pandemia el método clásico RFF logra mayor precisión estadística (\(p_{\text{Holm}}=0{,}0265\)). En el bloque final de \(60\) meses todos los contrastes ajustados marcan empate estadístico (\(p_{\text{Holm}}=1{,}000\)).
 
 \begin{table}[htbp]
 	\centering
-	\caption{Supervivencia de los doce modelos en el \textit{Model Confidence Set} (\(p_{\text{MCS}}\), \(T_{\max}\), \(B=2000\))}
+	\caption{Permanencia de los doce modelos dentro del grupo de mejores modelos empatados (\(p_{\text{MCS}}\))}
 	\label{tab:etapa8_mcs}
 	\footnotesize
 	\setlength{\tabcolsep}{5.5pt}
 	\renewcommand{\arraystretch}{1.12}
 	\begin{tabular}{@{}>{\raggedright\arraybackslash}p{4.4cm}S[table-format=1.3]S[table-format=1.3]S[table-format=1.3]S[table-format=1.3]S[table-format=1.3]S[table-format=1.3]@{}}
 		\toprule
-		& \multicolumn{2}{c}{Global (\(n=250\))} & \multicolumn{2}{c}{Pre-COVID (\(n=190\))} & \multicolumn{2}{c}{Congelado (\(n=60\))}\\
+		& \multicolumn{2}{c}{Global (\(n=250\))} & \multicolumn{2}{c}{Pre-pandemia (\(n=190\))} & \multicolumn{2}{c}{Tramo final (\(n=60\))}\\
 		\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
 		Modelo & {MSE} & {MAE} & {MSE} & {MAE} & {MSE} & {MAE}\\
 		\midrule
@@ -447,18 +437,18 @@ La Tabla~\ref{tab:etapa8_holm} confirma que ninguno de los siete contrastes glob
 		Factores dinámicos (DFM + Ridge) & 0.562 & 0.736 & 0.767 & 0.922 & 0.222 & 0.201\\
 		\bottomrule
 	\end{tabular}
-	\fuente{elaboración propia a partir de la evaluación conjunta del estudio. Regla de pertenencia: \(p_{\text{MCS}}\ge 0{,}10\) para \(\text{MCS}_{90\%}\) y \(p_{\text{MCS}}\ge 0{,}25\) para \(\text{MCS}_{75\%}\).}
+	\fuente{elaboración propia a partir de la evaluación conjunta del estudio (\(T_{\max}\), \(B=2000\)). Se mantiene en el grupo ganador al 90\% si \(p_{\text{MCS}}\ge 0{,}10\) (y al 75\% si \(p_{\text{MCS}}\ge 0{,}25\)).}
 \end{table}
 
-El análisis del conjunto de confianza de modelos (Tabla~\ref{tab:etapa8_mcs} y Figura~\ref{fig:etapa8_mcs}) resume la capacidad discriminante en cada período:
+El análisis conjunto de la Tabla~\ref{tab:etapa8_mcs} y la Figura~\ref{fig:etapa8_mcs} resume toda la evaluación:
 \begin{itemize}
-	\item \textbf{Empate estadístico en la muestra completa:} en los \(250\) orígenes totales, los doce modelos permanecen dentro del \(\text{MCS}_{90\%}\) y del \(\text{MCS}_{75\%}\) (\(p_{\text{MCS}} \ge 0{,}562\) en MSE y \(\ge 0{,}512\) en MAE), encabezados por RFF (\(p=1{,}000\)) y con ESN de veinte neuronas, QRC, AR y árboles potenciados agrupados en un segundo escalón equivalente (\(p=0{,}674\) en MSE; \(p=0{,}827\) en MAE). La alta varianza pandémica impide rechazar la igualdad de precisión entre los modelos competitivos.
-	\item \textbf{Capacidad discriminante por regímenes:} al aislar el período previo a la pandemia (\(n=190\)), el método expulsa del \(\text{MCS}_{90\%}\) a la corrección por media histórica (\(p=0{,}097\) en MSE; \(p=0{,}003\) en MAE) y deja a la media móvil fuera del \(\text{MCS}_{75\%}\). En cambio, en el bloque congelado pandémico (\(n=60\)), GBDT lidera (\(p=1{,}000\)) seguido de QRC (\(p=0{,}713\) en MSE; \(0{,}880\) en MAE), mientras las dos especificaciones lineales no acotadas (Ridge, \(p=0{,}187\); factores dinámicos, \(p=0{,}222\)) son expulsadas del \(\text{MCS}_{75\%}\).
+	\item \textbf{En toda la muestra (2003--2024):} ninguno de los doce modelos queda descartado definitivamente, aunque RFF ocupa el primer lugar (\(p_{\text{MCS}}=1{,}000\)) y ESN, QRC, AR y GBDT forman un grupo equivalente detrás.
+	\item \textbf{Separando épocas normales y pandemia:} antes de 2020, el método descarta la simple corrección por promedio histórico (\(p=0{,}097\)); mientras que durante la pandemia, encabezan los árboles potenciados (\(p=1{,}000\)), seguidos de RFF y QRC (\(p=0{,}713\)), expulsando del grupo líder al 75\% a los modelos lineales no acotados (Ridge, \(p=0{,}187\); factores dinámicos, \(p=0{,}222\)).
 \end{itemize}
 
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=0.98\textwidth]{images/etapa8_mcs_inferencia.png}
-	\caption{Supervivencia en el \textit{Model Confidence Set} bajo pérdida MSE por bloque temporal (izquierda) y familia confirmatoria de QRC en \(n=250\) con intervalos al 95\% y \(p\)-valores de Holm--Bonferroni (derecha).}
+	\caption{Supervivencia en el grupo de mejores modelos por época (izquierda) y comparaciones directas de QRC en \(n=250\) con márgenes al 95\% (derecha).}
 	\label{fig:etapa8_mcs}
 \end{figure}

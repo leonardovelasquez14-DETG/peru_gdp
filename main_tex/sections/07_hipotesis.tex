@@ -3,33 +3,33 @@
 
 \subsection{Hipótesis general}
 
-La incorporación de una representación temporal generada por un modelo QRC mejora la predicción fuera de muestra de las revisiones del PBI peruano respecto del mejor benchmark clásico preespecificado, siempre que la estructura de las revisiones contenga dependencias no lineales explotables y la muestra permita estimarlas sin sobreajuste.
+Incorporar señales temporales generadas por un reservorio cuántico mejora la predicción de las revisiones del PBI peruano frente a los modelos clásicos tradicionales, siempre que existan relaciones no lineales aprovechables en los datos y el tamaño de la serie permita aprenderlas sin ruido excesivo.
 
 \subsection{Hipótesis específicas}
 
-\begin{hypothesis}[Estructura predecible de las revisiones]
-	Las revisiones del PBI presentan al menos una propiedad sistemática —sesgo medio, persistencia o asociación con información disponible en la primera publicación— que puede ser identificada mediante pruebas descriptivas e inferenciales apropiadas.
+\begin{hypothesis}[Patrón sistemático en las revisiones]
+	Las revisiones del PBI peruano no son puro azar: muestran al menos una regularidad estadística —como tendencia promedio distinta de cero, repetición en el tiempo o relación con la primera cifra publicada— detectable con pruebas estadísticas adecuadas.
 \end{hypothesis}
 
-\begin{hypothesis}[Desempeño incremental de QRC]
-	En la evaluación temporal fuera de muestra, QRC reduce la pérdida predictiva frente al mejor benchmark clásico preespecificado y frente al reservorio clásico de plausibilidad, con una mejora cuya magnitud e incertidumbre se reportan explícitamente.
+\begin{hypothesis}[Aporte del reservorio cuántico]
+	Al predecir meses fuera de muestra respetando el tiempo real, QRC reduce el error de pronóstico frente al mejor modelo lineal clásico y frente a un reservorio clásico equivalente, reportando siempre la magnitud real de la mejora y su margen de incertidumbre.
 \end{hypothesis}
 
-\begin{hypothesis}[Dependencia respecto de las condiciones del problema]
-	El desempeño relativo de QRC depende de características del proceso generador, en particular del tamaño muestral, la persistencia, la dimensionalidad efectiva y la razón señal-ruido.
+\begin{hypothesis}[Condiciones en las que destaca QRC]
+	El rendimiento relativo de QRC cambia según el largo de la serie histórica, qué tan fuerte es la memoria de los datos, cuántas variables relevantes intervienen y qué tanto ruido rodea la señal económica.
 \end{hypothesis}
 
-\begin{hypothesis}[Relevancia económica condicionada]
-	Si QRC produce una mejora predictiva estable y replicable, la información adicional puede reducir la pérdida de una regla de decisión económica bajo supuestos explícitos. Esta hipótesis es secundaria y no se considerará contrastada únicamente por una reducción del RMSE.
+\begin{hypothesis}[Valor económico condicionado]
+	Solo si QRC demuestra una mejora predictiva clara, estable y estadísticamente sólida, esa mayor precisión podrá traducirse en menor pérdida económica dentro de una regla práctica de decisión. Esta hipótesis queda sujeta al cumplimiento previo de la ventaja predictiva.
 \end{hypothesis}
 
-\subsection{Expresión funcional de las variables}
+\subsection{Expresión operativa de las variables}
 
-La variable dependiente principal fue la revisión a horizonte fijo:
+La variable que todos los modelos intentan predecir es la revisión acumulada a un horizonte fijo de \(H\) meses:
 \[
 Y_t^{(H)}=y_t^{(v_H(t))}-y_t^{(v_0(t))}.
 \]
-Las variables explicativas fueron exclusivamente aquellas estrictamente observables en el origen \(v_0(t)\): la primera estimación publicada, las revisiones completadas de períodos previos en o antes de \(v_0(t)\), las tasas iniciales y revisiones rezagadas de las ramas productivas continuas, y las variables calendario documentadas. La especificación del vector de predictores quedó cerrada tras auditar la disponibilidad histórica de la base y antes de estimar los modelos predictivos.
+Para lograr esa predicción, los modelos utilizan únicamente indicadores ya conocidos al momento del primer anuncio \(v_0(t)\): el dato preliminar recién salido, las revisiones pasadas cuyo plazo de once meses ya cerró, las cifras disponibles de los sectores productivos y el mes del calendario. La lista exacta de predictores se cerró tras limpiar la base y antes de correr los modelos.
 
 \begin{table}[htbp]
 	\centering
@@ -39,13 +39,13 @@ Las variables explicativas fueron exclusivamente aquellas estrictamente observab
 	\renewcommand{\arraystretch}{1.15}
 	\begin{tabular}{@{}>{\raggedright\arraybackslash}p{3.1cm}>{\raggedright\arraybackslash}p{2.3cm}>{\raggedright\arraybackslash}p{6.1cm}>{\raggedright\arraybackslash}p{2.5cm}@{}}
 		\toprule
-		Variable & Tipo & Definición operacional & Fuente auditada\\
+		Variable & Tipo & Definición práctica & Fuente auditada\\
 		\midrule
-		Revisión a horizonte \(H\) & Dependiente & Diferencia entre la publicación a horizonte fijo y la primera publicación del mismo período & Vintages auditados del PBI\\
-		Primera estimación & Explicativa & Primera tasa de crecimiento publicada para el período & Archivo vintage BCRP\\
-		Revisiones históricas & Explicativa & Revisiones de períodos anteriores completadas y observables en el origen & Archivo vintage auditado\\
-		Indicadores sectoriales & Explicativa & Primeras publicaciones y rezagos de ramas productivas disponibles en cada origen & Archivo vintage sectorial\\
-		Calendario de publicación & Control & Mes, trimestre y distancia temporal desde la primera publicación & Metadatos de releases\\
+		Revisión a horizonte \(H\) & Dependiente & Cambio entre el dato publicado \(H\) meses después y la primera cifra del mismo mes & Archivo histórico BCRP\\
+		Primera estimación & Explicativa & Primera tasa de crecimiento mensual publicada para el período & Archivo histórico BCRP\\
+		Revisiones históricas & Explicativa & Correcciones pasadas que ya terminaron antes de la fecha del pronóstico & Archivo histórico BCRP\\
+		Indicadores sectoriales & Explicativa & Tasas preliminares y revisiones previas de las ramas productivas disponibles & Base sectorial continua\\
+		Calendario de publicación & Control & Mes del año, trimestre y retraso de difusión del boletín & Metadatos mensuales\\
 		\bottomrule
 	\end{tabular}
 	\fuente{elaboración propia.}

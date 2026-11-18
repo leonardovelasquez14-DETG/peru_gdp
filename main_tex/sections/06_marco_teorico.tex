@@ -3,57 +3,56 @@
 
 \subsection{Datos macroeconómicos en tiempo real}
 
-Sea \(y_t^{(v)}\) la estimación publicada para el período económico \(t\), observada en el vintage \(v\). El conjunto de información disponible en la fecha de publicación \(v\) se denota por \(\mathcal{I}_v\). Una evaluación en tiempo real exige que toda predicción para esa fecha sea función exclusiva de \(\mathcal{I}_v\). El uso de versiones posteriores de la serie para construir predictores o seleccionar modelos generaría sesgo por anticipación.
+Para evaluar con justicia qué tan bien predice un modelo, no se debe mirar el pasado usando cifras que recién se conocieron años después. En economía, cada boletín mensual ofrece una ``fotografía'' distinta de la historia. Si llamamos \(y_t^{(v)}\) al crecimiento publicado para el mes \(t\) dentro del boletín o \emph{vintage} \(v\), y llamamos \(\mathcal{I}_v\) al conjunto de toda la información ya divulgada hasta esa fecha, cualquier pronóstico hecho en ese momento solo puede usar datos dentro de \(\mathcal{I}_v\). Usar versiones corregidas posteriormente introduciría ventaja artificial por conocer el futuro.
 
 \subsection{Revisiones estadísticas}
 
-La revisión entre dos vintages se define como:
+Una revisión estadística es simplemente el cambio que sufre un mismo dato económico entre dos boletines publicados en momentos distintos:
 \begin{equation}
 	r_{t}^{(v,v+h)}=y_t^{(v+h)}-y_t^{(v)}.
 	\label{eq:revision}
 \end{equation}
-La revisión acumulada respecto de la primera publicación es:
+Cuando comparamos la publicación pasados \(h\) meses respecto a la \emph{primera vez} que ese dato salió a la luz (\(v_0(t)\)), hablamos de la revisión acumulada:
 \begin{equation}
-	R_{t,h}=y_t^{(v_0(t)+h)}-y_t^{(v_0(t))},
+	R_{t,h}=y_t^{(v_0(t)+h)}-y_t^{(v_0(t))}.
 	\label{eq:revision_acum}
 \end{equation}
-donde \(v_0(t)\) representa el primer vintage en que el período \(t\) fue publicado y \(h\) es un horizonte definido en tiempo calendario o en número de publicaciones comparables.
 
-La investigación distinguió tres conceptos:
+En todo el documento se distinguen tres ideas que suelen confundirse:
 \begin{itemize}
-	\item \textbf{Revisión:} diferencia observada entre dos publicaciones de una misma observación económica.
-	\item \textbf{Predicción de revisión:} estimación de una revisión futura utilizando exclusivamente información anterior a su publicación.
-	\item \textbf{Nowcasting:} estimación del estado económico corriente antes de que se publique la estadística objetivo.
+	\item \textbf{Revisión:} cambio observado entre dos publicaciones de una misma cifra mensual del PBI.
+	\item \textbf{Predicción de revisión:} anticipar cuánto cambiará una cifra ya anunciada, usando solo datos previos a su corrección.
+	\item \textbf{Estimación del presente (\emph{nowcasting}):} estimar cómo creció la economía en el mes actual antes de que exista un anuncio oficial.
 \end{itemize}
-El objeto principal fue la predicción de revisiones, no el nowcasting general del PBI.
+Este trabajo trata exclusivamente sobre la predicción de revisiones.
 
 \subsection{Definición del objetivo y horizonte comparable}
 
-La variable objetivo principal se definió como la revisión entre la primera publicación y una publicación posterior separada por un horizonte fijo de tiempo calendario. Aunque el protocolo inicial priorizó una ventana nominal de cuatro trimestres (\(H=12\)), la auditoría de cobertura evidenció \(18\) discontinuidades internas en dicho horizonte debido a la extensión de la ventana móvil publicada históricamente, por lo cual se adoptó \(H=11\) meses como horizonte anual continuo principal y se mantuvieron \(H=12\), \(6\) y \(3\) meses como análisis de sensibilidad.
-
-Para cada período \(t\):
+Para comparar todas las fechas bajo una misma regla, la variable a predecir es la corrección registrada un número fijo de meses después del primer anuncio:
 \begin{equation}
 	Y_t^{(H)}=y_t^{(v_H(t))}-y_t^{(v_0(t))},
 	\label{eq:target}
 \end{equation}
-donde \(v_H(t)\) representa el primer vintage publicado al menos \(H\) meses después de \(v_0(t)\). Esta regla se aplicó de forma uniforme a todos los períodos analizados.
+donde \(v_0(t)\) es el primer boletín que informó el mes \(t\) y \(v_H(t)\) es el primer boletín publicado al menos \(H\) meses después. Aunque inicialmente se pensó usar doce meses (\(H=12\)), al revisar los archivos del BCRP se vio que la ventana móvil publicada históricamente deja \(18\) vacíos internos a ese plazo. Por ello se eligió \(H=11\) meses como medida anual continua principal (\(350\) observaciones sin huecos), conservando \(H=12\), \(6\) y \(3\) meses para verificar estabilidad.
 
-La variable objetivo no se denominó ``valor verdadero'' ni ``valor definitivo'', sino revisión a horizonte fijo, pues incluso publicaciones posteriores permanecen abiertas a eventuales actualizaciones estadísticas. Los períodos sin horizonte completo y los \(24\) meses afectados por cambios de año base fueron excluidos del núcleo confirmatorio, informándose detalladamente las observaciones descartadas.
+No llamamos ``valor verdadero'' a la cifra revisada posterior, porque incluso años después pueden existir ajustes contables. Además, los \(24\) meses cruzados por cambios de año base se separaron del análisis principal para no confundir cambios de metodología con revisiones cotidianas.
 
-\subsection{Modelos econométricos de referencia}
+\subsection{Modelos tradicionales de comparación}
 
-\subsubsection{Modelo autorregresivo de revisiones}
+Para saber si un método complejo realmente vale la pena, hay que compararlo con herramientas clásicas conocidas por su sencillez y solidez.
 
-Como referencia parsimoniosa se estimó la especificación:
+\subsubsection{Modelo autorregresivo de revisiones (AR y ARX)}
+
+La idea más directa consiste en mirar si las revisiones anteriores ya completadas ayudan a predecir las nuevas:
 \begin{equation}
-	R_{t,H}=\alpha+\sum_{j=1}^{p}\phi_j R_{t-j,H}^{(obs)}+\boldsymbol{\beta}'\mathbf{x}_{t}^{(v_0)}+\varepsilon_t,
+	R_{t,H}=\alpha+\sum_{j=1}^{p}\phi_j R_{t-j,H}^{(obs)}+\boldsymbol{\beta}'\mathbf{x}_{t}^{(v_0)}+\varepsilon_t.
 	\label{eq:ar}
 \end{equation}
-donde las variables explicativas estuvieron estrictamente disponibles en la fecha de origen del pronóstico. El orden \(p\) se seleccionó dentro de cada ventana de entrenamiento mediante el criterio bayesiano de Schwarz (BIC), sin emplear información del tramo de evaluación.
+Aquí solo entran revisiones pasadas ya terminadas y variables ya publicadas en la fecha de pronóstico. El número de rezagos \(p\) se elige automáticamente dentro de cada historial pasado usando el criterio BIC, sin mirar nunca el tramo de prueba.
 
-\subsubsection{Regresión regularizada}
+\subsubsection{Regresión regularizada (Ridge)}
 
-La regresión Ridge \parencite{hoerl1970} se estimó mediante:
+Cuando se incluyen varias variables sectoriales a la vez, una regresión lineal común puede volverse inestable. La regresión Ridge \parencite{hoerl1970} evita coeficientes exagerados añadiendo un freno proporcional a su tamaño:
 \begin{equation}
 	\widehat{\boldsymbol{\beta}}=
 	\arg\min_{\boldsymbol{\beta}}
@@ -63,40 +62,33 @@ La regresión Ridge \parencite{hoerl1970} se estimó mediante:
 	\right\}.
 	\label{eq:ridge}
 \end{equation}
-Tanto la estandarización de variables como la selección del parámetro de penalización \(\lambda\) se ejecutaron dentro de cada ventana de entrenamiento.
+La intensidad del freno (\(\lambda\)) y la escala de las variables se calculan de nuevo en cada mes usando únicamente los datos pasados disponibles hasta ese instante.
 
-\subsubsection{Árboles potenciados acotados (GBDT)}
+\subsubsection{Árboles de decisión potenciados (GBDT)}
 
-Para incorporar un referente no lineal basado en árboles de decisión potenciados \parencite{friedman2001,chen2016}, se estimó un modelo de gradiente potenciado sobre árboles CART de profundidad acotada en Python. Su inclusión permitió evaluar si posibles relaciones no lineales entre variables sectoriales y de publicación podían capturarse sin recurrir a computación cuántica. Los hiperparámetros se ajustaron mediante validación temporal interna.
+Los modelos lineales dibujan siempre rectas: si un dato cae mucho, proyectan una corrección gigante en proporción directa. En cambio, los árboles de decisión acotados \parencite{friedman2001,chen2016} dividen la información en reglas escalonadas tipo ``si ocurre tal rango, aplica este ajuste'', sumando varios árboles pequeños corregidos paso a paso. Esto les permite captar comportamientos curvos sin dispararse ante cifras extremas como las de una pandemia.
 
-\subsubsection{Modelo de factores dinámicos}
+\subsubsection{Modelo de factores dinámicos (DFM)}
 
-El modelo de factores dinámicos \parencite{stock2002,giannone2008} resumió información común de las series disponibles en tiempo real:
+Este enfoque \parencite{stock2002,giannone2008} resume el pulso común de distintos sectores económicos en pocos factores principales:
 \begin{align}
 	\mathbf{x}_t&=\boldsymbol{\Lambda}f_t+\boldsymbol{\epsilon}_t,\\
 	f_t&=\mathbf{A}f_{t-1}+\boldsymbol{\eta}_t.
 \end{align}
-Dado que el archivo verificado contiene series históricas del PBI por ramas productivas mas no un panel externo amplio con fechas exactas de difusión histórica, el modelo se circunscribió a extraer el factor común de las seis desagregaciones sectoriales continuas y proyectarlo mediante regresión regularizada.
+Como la base histórica disponible reúne las tasas por sector económico (sin indicadores externos con fechas diarias certificadas), el modelo extrajo la tendencia común de las seis ramas productivas continuas y la proyectó mediante regresión Ridge.
 
-\subsubsection{Corrección clásica de sesgo}
+\subsubsection{Corrección clásica por promedio histórico}
 
-Se incluyó un referente estadístico sencillo estimado exclusivamente a partir de errores históricos de revisión observables en cada origen:
+Como regla práctica elemental, se probó simplemente sumar a cada primer anuncio el promedio histórico de revisiones observadas hasta ese momento:
 \begin{equation}
 	\widehat{Y}_{t,H}^{\,BC}=\widehat{Y}_{t,H}^{\,base}+
 	\widehat{\mathbb{E}}\left[R_{t,H}\mid\mathcal{I}_{v_0(t)}\right].
 \end{equation}
-Esta especificación se evaluó tanto con la media histórica acumulada como con una media móvil de sesenta meses, para comprobar si los modelos más complejos aportan capacidad predictiva adicional frente a una corrección estadística elemental.
+Se evaluaron dos versiones: el promedio acumulado de toda la historia disponible y un promedio móvil de los últimos sesenta meses. Si un algoritmo complejo no logra ganar con claridad a esta regla tan simple, no justifica su uso.
 
-\subsection{Computación de reservorio cuántico}
+\subsection{Computación de reservorio cuántico (QRC)}
 
-En la computación de reservorio cuántico (QRC) \parencite{fujii2017}, una secuencia de datos clásicos \(u_t\) se codifica en un sistema cuántico cuyo estado evoluciona según una dinámica fija. Las mediciones generan un vector de características:
-\begin{equation}
-	\mathbf{z}_t=
-	\left(
-	\langle O_1\rangle_t,\ldots,\langle O_m\rangle_t
-	\right)'.
-\end{equation}
-La capa de salida se entrena mediante regresión regularizada Ridge:
+Un reservorio funciona como un estanque con ondas: cuando ingresan los datos históricos \(u_t\), el sistema reacciona con una dinámica interna fija que mezcla la información de forma no lineal, sin necesidad de entrenar el interior del circuito \parencite{fujii2017}. Al final solo se toman \(m\) lecturas numéricas \(\mathbf{z}_t = (\langle O_1\rangle_t,\ldots,\langle O_m\rangle_t)'\) y se entrena una regresión Ridge sencilla para producir el pronóstico:
 \begin{equation}
 	\widehat{\mathbf{w}}=
 	\arg\min_{\mathbf{w}}
@@ -107,16 +99,21 @@ La capa de salida se entrena mediante regresión regularizada Ridge:
 	\right\}.
 	\label{eq:qrc_readout}
 \end{equation}
-La configuración de cinco qubits, la codificación angular, los veinte observables medidos, la simulación exacta sin ruido físico y las semillas empleadas se fijaron antes de evaluar el tramo final congelado. Aunque la dinámica recurrente cuántica puede representar relaciones no lineales, no se asumió que superara en memoria a un reservorio clásico, sometiéndose esa hipótesis a prueba empírica directa.
+En este estudio se simuló de manera exacta (sin ruido físico de laboratorio) un sistema de cinco qubits que entrega veinte lecturas acotadas entre \(-1\) y \(+1\). Al dejar fija la parte cuántica y entrenar únicamente esa última línea recta sobre veinte señales, se evita el sobreajuste típico de circuitos cuánticos más profundos.
 
-\subsection{Control clásico de reservorio}
+\subsection{Controles clásicos equivalentes}
 
-Como controles clásicos comparables se implementaron una red de estado eco (\emph{Echo State Network}, ESN) con dinámica recurrente acotada e idéntica dimensión de salida que QRC (\(m=20\)) \parencite{jaeger2001}, una versión ampliada de \(64\) neuronas y un mapeo no lineal estático de características aleatorias de Fourier (RFF, \(m=20\)) \parencite{rahimi2007}. La igualdad dimensional de la capa de lectura no garantiza equivalencia funcional exacta; por ello, estos modelos funcionaron como controles clásicos de complejidad comparable y no como demostración matemática de equivalencia \parencite{schuld2021}.
+Para comprobar si un buen resultado de QRC viene de ``lo cuántico'' o simplemente del tamaño y suavizado de sus veinte señales, se comparó en igualdad de condiciones contra dos métodos clásicos bien conocidos:
+\begin{itemize}
+	\item \textbf{Red de estado eco (ESN):} un reservorio clásico que también mezcla datos en el tiempo con pesos fijos y veinte neuronas de salida \parencite{jaeger2001} (más una versión mayor de sesenta y cuatro neuronas).
+	\item \textbf{Características aleatorias de Fourier (RFF):} una transformación estática clásica que convierte los datos mediante veinte ondas aleatorias de seno y coseno \parencite{rahimi2007}, sin memoria recurrente interna.
+\end{itemize}
+Usar exactamente veinte señales de lectura garantiza una comparación honesta en complejidad y presupuesto de cálculo, sin asumir equivalencia matemática perfecta \parencite{schuld2021}.
 
-\subsection{Límites de la inferencia sobre ventaja cuántica}
+\subsection{Qué no se puede afirmar sobre ventaja cuántica}
 
-Una eventual mejora predictiva de QRC frente a modelos lineales no demuestra superioridad cuántica computacional en sentido estricto, pues ello exigiría comparar complejidad teórica y recursos frente a los mejores algoritmos clásicos conocidos para la misma tarea \parencite{schuld2021}. Por esa razón, el estudio se limitó a evaluar precisión fuera de muestra y estabilidad numérica bajo condiciones experimentales controladas, evitando expresiones como ``supremacía cuántica'' o ``ventaja cuántica demostrada''.
+Incluso si QRC superara a una regresión lineal, eso no probaría ``supremacía cuántica'', porque una mejora podría deberse simplemente a que sus salidas están acotadas frente a una fórmula lineal que se dispara en crisis \parencite{schuld2021}. Por ello, este estudio evaluó estrictamente precisión real, estabilidad entre ejecuciones aleatorias y desempeño frente a controles clásicos equivalentes.
 
 \subsection{Marco legal e institucional}
 
-El estudio utilizó exclusivamente estadísticas macroeconómicas públicas y repositorios científicos abiertos, respetando sus condiciones de atribución, versión y licencia. La conceptualización de las cuentas nacionales, los cambios de año base de 2000 y 2014 y el calendario mensual de difusión se documentaron en consonancia con las Notas Semanales del BCRP y el marco metodológico del INEI sobre el PBI mensual.
+Todo el análisis empleó exclusivamente estadísticas públicas y código científico abierto, respetando licencias y atribución de origen. Las cuentas nacionales, los cambios de año base (2000 y 2014) y el calendario mensual de publicación se ajustan a las Notas Semanales del BCRP y al marco oficial del INEI para el PBI mensual.

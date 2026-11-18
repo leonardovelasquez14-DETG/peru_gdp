@@ -1,37 +1,35 @@
 % ============================================================================
 \section{Antecedentes empíricos}
 
-La revisión de antecedentes se organizó alrededor de tres ejes: los datos macroeconómicos en tiempo real y el estudio de revisiones estadísticas, los modelos clásicos y de aprendizaje automático para el pronóstico coyuntural, y la computación cuántica aplicada a series de tiempo. Se separaron claramente las investigaciones centradas en anticipar revisiones de cifras ya divulgadas respecto de aquellas enfocadas en estimar indicadores aún no publicados.
+Para situar el estudio, se revisaron tres líneas de trabajos previos: el análisis de revisiones económicas con datos históricos en tiempo real, los modelos estadísticos y de aprendizaje automático aplicados al pronóstico económico, y las primeras pruebas de reservorios cuánticos en series de tiempo. Se separó cuidadosamente entre estudios que estiman el crecimiento del mes actual (\emph{nowcasting}) y estudios centrados en predecir cuánto cambiará una cifra ya divulgada.
 
 \subsection{Antecedentes internacionales}
 
 \paragraph{\texorpdfstring{\textcite{croushore2001}}{Croushore y Stark (2001)}.}
-Construyeron la primera base sistemática de datos macroeconómicos en tiempo real para Estados Unidos (\emph{RTDSM}) y mostraron cómo las revisiones sucesivas del producto y de los precios modifican tanto la evaluación de políticas como la precisión aparente de los modelos econométricos. Su trabajo constituyó la base metodológica para organizar publicaciones mensuales en formato de \emph{vintages} y separar revisiones ordinarias de cambios de base.
+Crearon para Estados Unidos el primer gran archivo organizado con las versiones mensuales históricas de indicadores económicos (\emph{RTDSM}). Demostraron que revisar cómo cambian las cifras a lo largo del tiempo altera tanto el diagnóstico económico como la precisión aparente de los modelos, y sentaron las reglas prácticas para separar revisiones cotidianas de cambios metodológicos mayores.
 
 \paragraph{\texorpdfstring{\textcite{giannone2008}}{Giannone et al. (2008)}.}
-Propusieron un marco formal basado en factores dinámicos para estimar la actividad económica conforme llegan indicadores con distinto retraso de publicación. Su aporte principal a este estudio radica en la disciplina de actualizar los pronósticos respetando estrictamente la fecha en que cada dato estuvo disponible, aunque su variable objetivo fue el nivel corriente del producto (\emph{nowcasting}) y no sus revisiones posteriores.
+Propusieron modelos factoriales capaces de actualizar pronósticos económicos a medida que se publican distintos indicadores en diferentes fechas del mes. Aunque su meta fue estimar la actividad presente antes del anuncio oficial (\emph{nowcasting}), aportaron la disciplina básica de utilizar en cada cálculo únicamente la información ya conocida en esa fecha.
 
 \paragraph{\texorpdfstring{\textcite{aruoba2009}}{Aruoba et al. (2009)}.}
-Desarrollaron un indicador diario de actividad económica en tiempo real mediante modelos en espacio de estados capaces de combinar series de distinta frecuencia y oportunidad estadística. Al igual que en el trabajo anterior, su aporte metodológico consistió en el tratamiento ordenado de la llegada escalonada de noticias económicas más que en el modelado directo de errores de revisión.
+Diseñaron un índice diario de actividad económica que combina series publicadas con distinta frecuencia y retraso. Al igual que el estudio anterior, su principal enseñanza para este trabajo reside en el manejo ordenado del calendario real de publicaciones, más que en el pronóstico directo de revisiones.
 
 \paragraph{\texorpdfstring{\textcite{stark2010}}{Stark (2010)}.}
-Evaluó de manera realista el desempeño de los pronósticos profesionales sobre el PBI estadounidense comparándolos contra distintas versiones históricas de la cifra observada. Demostró que las conclusiones sobre precisión predictiva cambian de forma sustancial según el horizonte y la versión utilizada como referencia, justificando fijar reglas uniformes de horizonte para estudiar revisiones.
+Evaluó pronósticos reales sobre la economía estadounidense comparándolos contra distintas versiones históricas de la cifra observada. Probó que juzgar la precisión de un modelo cambia mucho según qué versión de la serie se tome como referencia, lo que justifica fijar de antemano un horizonte fijo de comparación.
 
 \paragraph{\texorpdfstring{\textcite{croushore2011,banbura2011}}{Croushore (2011) y Bańbura et al. (2011)}.}
-En revisiones integradoras sobre el campo, \textcite{croushore2011} sintetizó los fundamentos para contrastar si las revisiones responden a nueva información o a ruido de medición inicial \parencite{mankiw1986}, mientras que \textcite{banbura2011} sistematizaron los modelos factoriales de referencia empleados en bancos centrales y delimitaron la frontera entre estimación coyuntural y predicción de revisiones.
+En dos revisiones amplias de la literatura, \textcite{croushore2011} resumió las pruebas clásicas para distinguir si las revisiones incorporan información nueva o corrigen ruido de medición inicial \parencite{mankiw1986}, mientras \textcite{banbura2011} ordenaron el uso práctico de modelos de factores en bancos centrales y delimitaron la frontera entre estimar el presente y predecir correcciones futuras.
 
-\subsection{Antecedentes nacionales y brecha de investigación}
+\subsection{Antecedentes nacionales y vacío cubierto}
 
-Para el caso peruano, el estudio se apoyó directamente en el conjunto de datos histórico construido por \textcite{cruz2025} a partir de las Notas Semanales del BCRP entre 1994 y 2025, complementado con el marco normativo e informativo del Instituto Nacional de Estadística e Informática (INEI) sobre cuentas nacionales y cambios de año base. Dichos autores sistematizaron tres décadas de revisiones del PBI mensual peruano y analizaron su utilidad para el seguimiento coyuntural en economías emergentes.
+En el Perú, la base principal proviene del trabajo de \textcite{cruz2025}, quienes recopilaron las Notas Semanales del BCRP entre 1994 y 2025 siguiendo las definiciones de cuentas nacionales y los cambios de año base documentados por el Instituto Nacional de Estadística e Informática (INEI). Esos autores documentaron treinta años de revisiones del PBI mensual peruano y su utilidad para el seguimiento económico.
 
-Sin embargo, la brecha específica abordada por la presente investigación reside en la falta de evidencia empírica reproducible que compare, sobre esa secuencia histórica verificada y bajo igualdad estricta del conjunto de información en cada mes, si las arquitecturas cuánticas de reservorio superan o no a referentes econométricos tradicionales y algoritmos modernos acotados de aprendizaje automático para anticipar revisiones futuras.
+Sin embargo, faltaba comprobar de manera reproducible y con estrictas reglas de tiempo real si una técnica emergente como el reservorio cuántico logra mejorar las predicciones frente a modelos econométricos clásicos y algoritmos modernos acotados sobre esa historia económica peruana.
 
 \subsection{Antecedentes sobre aprendizaje automático y reservorios cuánticos}
 
-La literatura sobre aprendizaje automático cuántico ha investigado el potencial de los circuitos parametrizados y los reservorios cuánticos para extraer características no lineales de series temporales. \textcite{fujii2017} propusieron el paradigma de computación de reservorio cuántico (QRC), mostrando que la dinámica fija de un sistema de espines acoplados permite proyectar entradas secuenciales hacia un espacio de estados complejo y entrenar únicamente una capa de lectura lineal sencilla, evitando los problemas de optimización y gradientes desvanecientes que afectan a los circuitos variacionales \parencite{cerezo2021}.
-
-No obstante, \textcite{schuld2021} advirtieron que una mayor expresividad matemática no garantiza ventaja predictiva ni computacional en problemas concretos, insistiendo en la necesidad de contrastar los modelos cuánticos frente a controles clásicos equivalentes y regularizados antes de extraer afirmaciones de superioridad.
+En computación cuántica aplicada a datos secuenciales, \textcite{fujii2017} propusieron usar sistemas cuánticos de dinámica fija —los llamados reservorios cuánticos— para transformar series temporales sin necesidad de ajustar circuitos profundos difíciles de entrenar \parencite{cerezo2021}, dejando el aprendizaje en una simple regresión lineal final. No obstante, \textcite{schuld2021} recalcaron que una formulación matemática sofisticada no equivale automáticamente a mejores predicciones reales, exigiendo comparar cualquier modelo cuántico frente a métodos clásicos simples del mismo tamaño.
 
 \subsection{Síntesis de antecedentes}
 
-Los antecedentes revisados dejaron cuatro principios rectores para esta investigación: trabajar estrictamente con datos históricos en formato de \emph{vintages}; tomar como referentes los modelos de factores, regresiones regularizadas y correcciones de sesgo clásicas; no confundir la predicción de revisiones con la estimación del nivel corriente del PBI; y someter el modelo cuántico a una comparación simétrica frente a controles clásicos acotados de capacidad equivalente.
+Los estudios previos dejaron cuatro reglas claras para este trabajo: respetar estrictamente las fechas reales de cada publicación histórica; usar como punto de comparación modelos lineales regularizados, factores y promedios clásicos; no confundir la predicción de revisiones con la estimación del crecimiento del mes actual; y contrastar el modelo cuántico frente a controles clásicos justos y acotados.

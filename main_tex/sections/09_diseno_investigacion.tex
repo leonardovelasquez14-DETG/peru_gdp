@@ -3,122 +3,111 @@
 
 \subsection{Tipo y diseño}
 
-La investigación fue cuantitativa, aplicada y no experimental. Combinó un componente longitudinal, al analizar sucesivas publicaciones de observaciones macroeconómicas en formato de \emph{vintages}, con un componente de simulación numérica controlada bajo procesos generadores calibrados. La evaluación predictiva se efectuó estrictamente fuera de muestra respetando el orden temporal. El protocolo mantuvo carácter confirmatorio para la arquitectura QRC principal y carácter exploratorio para las variantes complementarias.
+El estudio es cuantitativo, aplicado y no experimental. Combina el análisis histórico de las sucesivas versiones publicadas del PBI peruano con simulaciones numéricas controladas para poner a prueba los modelos en escenarios conocidos. Todas las predicciones se evaluaron fuera de muestra y respetando estrictamente el paso del tiempo. Se fijó por adelantado una arquitectura cuántica principal para evitar elegir el mejor resultado a conveniencia después de ver los números.
 
 \subsection{Material, métodos y técnicas}
 
 \subsubsection{Material: población y muestra}
 
-La población estuvo conformada por las publicaciones sucesivas del PBI mensual peruano reconstruibles de forma verificable dentro de la cobertura de la fuente seleccionada, tomando como unidad de análisis el período económico \(t\) asociado a su secuencia de \emph{vintages}.
+La población abarca todas las publicaciones mensuales del PBI del Perú registradas de manera verificable en las Notas Semanales del BCRP. Tras la limpieza inicial se reunieron \(44\,307\) datos por actividad económica correspondientes a nueve sectores a lo largo de \(384\) boletines mensuales continuos (enero de 1994 a diciembre de 2025), cubriendo \(406\) meses de actividad (enero de 1992 a octubre de 2025).
 
-La auditoría inicial cuantificó la cobertura bruta y delimitó la muestra analítica depurada: \(44\,307\) observaciones industria--vintage para nueve ramas económicas y \(384\) publicaciones mensuales continuas entre enero de 1994 y diciembre de 2025. Para el PBI agregado, de los \(406\) períodos objetivo comprendidos entre enero de 1992 y octubre de 2025, la aplicación uniforme de la regla de horizonte fijo \(H\) (Ecuación~\ref{eq:target}) y los criterios de calidad siguientes produjo \(350\) observaciones limpias a \(H=11\) meses (\(374\) antes de excluir cambios de base) y \(331\) limpias a \(H=12\) meses (\(355\) antes de excluir cambios de base):
+Para el PBI agregado, al medir la revisión a un plazo fijo de once meses (\(H=11\)) y aplicar cinco reglas de calidad quedaron \(350\) observaciones limpias (\(374\) antes de retirar los cambios de base) y \(331\) observaciones al plazo de doce meses:
 \begin{enumerate}
-	\item identificación inequívoca del período económico;
-	\item identificación de la primera fecha de publicación \(v_0(t)\) (excluyendo los \(21\) meses de 1992--1993 con rezago inicial superior a tres meses);
-	\item disponibilidad del horizonte objetivo \(H\) dentro de la cobertura del archivo;
-	\item consistencia metodológica sin cruce de cambio de año base (excluyendo los \(24\) períodos afectados en julio de 2000 y marzo de 2014);
-	\item ausencia de duplicados no resueltos y de códigos centinela metodológicos.
+	\item identificar sin ambigüedad a qué mes corresponde cada cifra;
+	\item exigir una primera publicación oportuna (retirando los \(21\) meses de 1992--1993 con retrasos iniciales largos);
+	\item contar con el boletín correspondiente \(H\) meses después;
+	\item excluir los \(24\) meses cruzados por los cambios de año base de julio de 2000 y marzo de 2014;
+	\item comprobar la ausencia de filas repetidas y códigos especiales sin dato válido.
 \end{enumerate}
-El registro íntegro de exclusiones quedó documentado para verificación en los anexos técnicos de auditoría (véase el Anexo~\ref{app:auditoria}).
+El detalle completo de filtros y meses descartados figura en el Anexo~\ref{app:auditoria}.
 
 \subsubsection{Fuentes y disponibilidad de información}
 
-La fuente principal del estudio fue el repositorio histórico \emph{Peru GDP Real-Time Dataset (1994--2025)} de \textcite{cruz2025}, construido a partir de las Notas Semanales del BCRP bajo licencia abierta MIT y actualizado hasta diciembre de 2025.
+Se trabajó sobre la base histórica abierta \emph{Peru GDP Real-Time Dataset (1994--2025)} de \textcite{cruz2025}. Al inspeccionar los boletines semanales (con \(384\) meses únicos luego de quitar \(150\) reportes repetidos), se comprobó que las tablas indican el mes y el número de nota semanal, pero no el día exacto de salida. Por ello, los cálculos trabajan bajo una aproximación mensual en tiempo real.
 
-Al revisar los metadatos de publicación semanal (con \(384\) meses únicos tras depurar \(150\) registros repetidos), se comprobó que las tablas registran el mes y el número de nota semanal mas no el día exacto de divulgación. Por esa razón, la evaluación empírica se definió explícitamente como un ejercicio mensual aproximado al tiempo real.
+\subsubsection{Métodos de análisis y pruebas estadísticas}
 
-\subsubsection{Métodos para la contrastación de hipótesis}
-
-Para responder a los objetivos específicos se emplearon los siguientes métodos:
+Para responder cada pregunta del estudio se combinaron cinco grupos de herramientas:
 \begin{itemize}
-	\item estadística descriptiva para caracterizar la distribución de las revisiones;
-	\item pruebas de media, autocorrelación \parencite{ljung1978}, normalidad, eficiencia \parencite{mincer1969}, linealidad \parencite{ramsey1969} y heterocedasticidad condicional \parencite{engle1982} con errores estándar robustos a dependencia temporal \parencite{newey1987};
-	\item modelos autorregresivos, regresión regularizada Ridge \parencite{hoerl1970} y factores dinámicos sectoriales \parencite{stock2002};
-	\item árboles de decisión potenciados acotados \parencite{friedman2001,chen2016};
-	\item computación de reservorio cuántico \parencite{fujii2017} junto con redes de estado eco \parencite{jaeger2001} y características aleatorias de Fourier \parencite{rahimi2007} como controles clásicos comparables;
-	\item validación estrictamente causal en ventana móvil expansiva con tramo final reservado;
-	\item pruebas formales de precisión predictiva \parencite{diebold1995,harvey1997,clark2007}, bootstrap circular por bloques \parencite{politis1992}, ajuste por comparaciones múltiples \parencite{holm1979,benjamini1995} y conjunto de confianza de modelos \parencite{hansen2011}.
+	\item medidas descriptivas básicas (promedio, mediana, dispersión y valores extremos);
+	\item pruebas estadísticas clásicas para detectar sesgo, memoria en el tiempo \parencite{ljung1978}, eficiencia informativa \parencite{mincer1969}, relaciones curvas \parencite{ramsey1969} y cambios de volatilidad entre épocas \parencite{engle1982}, ajustando los errores estándar para tomar en cuenta la cercanía temporal entre meses \parencite{newey1987};
+	\item referentes clásicos de pronóstico: modelos autorregresivos, regresión Ridge \parencite{hoerl1970}, factores sectoriales \parencite{stock2002} y árboles de decisión acotados \parencite{friedman2001,chen2016};
+	\item reservorios y transformaciones no lineales de tamaño equivalente: el modelo cuántico QRC \parencite{fujii2017}, la red clásica ESN \parencite{jaeger2001} y las características aleatorias RFF \parencite{rahimi2007};
+	\item pruebas modernas para comparar pronósticos sin dejarse engañar por el azar al comparar muchos modelos a la vez: contraste de errores \parencite{diebold1995,harvey1997,clark2007}, remuestreo por bloques temporales \parencite{politis1992}, ajustes por comparaciones múltiples \parencite{holm1979,benjamini1995} y selección del grupo de mejores modelos empatados \parencite{hansen2011}.
 \end{itemize}
 
-\subsubsection{Técnicas e instrumentos de recolección de datos}
+\subsubsection{Recolección y cuidado de los datos}
 
-La técnica utilizada fue la extracción ordenada y revisión automatizada de series históricas mediante un protocolo formal de auditoría. Se verificaron integridad física, sumas de control criptográficas, cobertura por período, unidades y fechas de corte, conservando sin alteración los archivos originales.
+Los archivos originales del repositorio se mantuvieron intactos en todo momento. Se automatizó la lectura, ordenamiento cronológico y verificación matemática mediante códigos reproducibles y huellas digitales de control (sumas criptográficas SHA-256).
 
-\subsection{Estrategias metodológicas}
+\subsection{Estrategia paso a paso del estudio}
 
-\subsubsection{Auditoría y reconstrucción de publicaciones históricas}
+\subsubsection{Limpieza del archivo histórico}
 
-Se revisó la estructura de las tablas y se armó una matriz histórica con los períodos en filas y las fechas de publicación en columnas, comprobando que ninguna celda contuviera datos posteriores a su respectiva fecha de difusión. Se separaron las revisiones estadísticas ordinarias de las rupturas causadas por cambios de año base y se elaboró el diccionario de variables junto con el registro de anomalías. Debido a que los metadatos no registran el día calendario exacto, la evaluación se clasificó como mensual aproximada al tiempo real.
+Se ordenó la base en una matriz donde cada fila representa un mes medido y cada columna una fecha de publicación, confirmando que ninguna celda mostraba información adelantada al futuro. Además, se separaron las revisiones estadísticas cotidianas de los saltos causados por los cambios de año base.
 
-\subsubsection{Definición de la variable objetivo y análisis econométrico}
+\subsubsection{Elección del horizonte y diagnóstico inicial}
 
-La variable dependiente \(Y_t^{(H)}\) se fijó según la Ecuación~\ref{eq:target}. El horizonte de once meses (\(H=11\)) se eligió exclusivamente por razones de continuidad y cobertura antes de estimar cualquier modelo, reservando \(H=12\), \(6\) y \(3\) para verificar estabilidad. Se calcularon medidas de tendencia central, dispersión, asimetría, curtosis y autocorrelaciones, aplicando errores estándar HAC de \textcite{newey1987} tanto con ventana automática como con ventana ampliada al horizonte de solapamiento (\(L=H\)), además de regresiones de eficiencia de \textcite{mincer1969} y pruebas diagnósticas de autocorrelación \parencite{ljung1978}, linealidad \parencite{ramsey1969} y volatilidad agrupada \parencite{engle1982}.
+El plazo principal de once meses (\(H=11\)) se fijó exclusivamente por continuidad de datos antes de probar ningún modelo predictivo, dejando \(H=12\), \(6\) y \(3\) meses como respaldo. Sobre la serie depurada se revisó si las revisiones tienen sesgo sistemático, ciclos repetitivos por mes del año o cambios bruscos de comportamiento antes y después de la pandemia.
 
-\subsubsection{Modelos econométricos y de aprendizaje automático de referencia}
+\subsubsection{Modelos clásicos de referencia}
 
-Se estimaron especificaciones autorregresivas (AR y ARX con orden elegido mediante BIC), regresión regularizada Ridge (referente lineal principal sobre veinte variables observables), árboles potenciados acotados (implementados mediante árboles CART en Python ante la indisponibilidad de paquetes externos), un modelo factorial dinámico sobre seis ramas sectoriales continuas y dos correcciones estadísticas de sesgo (media histórica acumulada y media móvil de sesenta meses). Todos los modelos usaron únicamente información disponible en cada origen y ajustaron sus parámetros mediante validación temporal interna dentro de la muestra de entrenamiento.
+Se estimaron ocho referentes clásicos usando únicamente la información disponible en cada mes evaluado: referencia nula (predecir cero), promedio acumulado histórico, promedio móvil de sesenta meses, modelos autorregresivos (AR y ARX), regresión Ridge sobre veinte variables observables, factores dinámicos de seis sectores continuos y árboles de decisión acotados implementados en Python ante la ausencia de librerías externas.
 
-\subsubsection{Implementación del reservorio cuántico y controles clásicos}
+\subsubsection{Modelo cuántico y controles clásicos equivalentes}
 
-Se implementó un reservorio cuántico de cinco qubits basado en dinámica fija de espines acoplados mediante simulación exacta en Python sin ruido de hardware, midiendo veinte valores esperados de Pauli como variables de entrada para una capa lineal Ridge. Como controles clásicos comparables de igual dimensión (\(m=20\)) se evaluaron una red recurrente ESN de veinte neuronas y un mapeo estático de características aleatorias de Fourier (RFF), junto con una variante ESN ampliada de sesenta y cuatro neuronas, utilizando cinco semillas independientes para medir estabilidad sin asumir equivalencia matemática exacta entre arquitecturas cuánticas y clásicas \parencite{schuld2021}.
+El reservorio cuántico se implementó mediante simulación exacta en Python de cinco qubits acoplados (sin ruido de laboratorio), midiendo veinte señales cuánticas simples que alimentan una regresión Ridge final. Para comparar en justicia con herramientas clásicas de exactamente el mismo tamaño de lectura (\(m=20\)), se evaluaron una red clásica ESN de veinte neuronas, una variante ESN ampliada de sesenta y cuatro neuronas y el mapeo estático de Fourier (RFF), repitiendo cada algoritmo cinco veces con distintas semillas aleatorias para comprobar su estabilidad \parencite{schuld2021}.
 
-\subsubsection{Validación temporal sin información futura}
+\subsubsection{Simulación realista mes a mes sin ver el futuro}
 
-Se utilizó un esquema de origen móvil expansivo sobre \(250\) fechas mensuales entre febrero de 2003 y noviembre de 2024. En cada origen \(o\), el entrenamiento incluyó únicamente períodos pasados cuya revisión ya había concluido en o antes de \(o\):
+Los doce modelos compitieron mes a mes entre febrero de 2003 y noviembre de 2024 (\(250\) fechas en total). En cada fecha \(o\), cada modelo entrenaba solo con meses pasados cuya revisión ya había terminado:
 \[
 \widehat{Y}_{o+1|o}=f_o(\mathcal{I}_o).
 \]
-Además, los últimos \(60\) meses (diciembre de 2019 a noviembre de 2024) se mantuvieron apartados hasta la evaluación final sin intervenir en la selección de modelos ni hiperparámetros, comprobándose explícitamente la ausencia de filtración de datos futuros.
+Los últimos cinco años (\(60\) meses, de diciembre de 2019 a noviembre de 2024) quedaron guardados aparte hasta el final, de modo que ningún modelo pudiera ajustarse mirando la pandemia de antemano.
 
-\subsubsection{Experimento sintético calibrado}
+\subsubsection{Escenarios simulados y potencia estadística}
 
-Para identificar en qué contextos teóricos podrían diferenciarse las arquitecturas cuando se conoce la dinámica subyacente, se calibró el modelo paramétrico:
+Como en la historia real solo tenemos \(250\) meses de prueba, también se crearon doce escenarios artificiales calibrados a partir de los datos peruanos mediante la ecuación:
 \begin{equation}
 	r_{t,j}=\mu_j+\phi_j r_{t-1,j}
 	+\gamma_j s_t+\delta_j B_t+\varepsilon_{t,j},
 	\label{eq:dgp}
 \end{equation}
-mediante \(300\) réplicas bootstrap por bloques \parencite{politis1992} sobre la serie peruana observada, trasladando dicha incertidumbre paramétrica a doce escenarios definidos de antemano (variando tamaño muestral, persistencia, intensidad de señal, dimensión efectiva y choques no lineales) con veinte simulaciones independientes por escenario. Complementariamente, se calcularon curvas de potencia estadística y efectos mínimos detectables al \(80\)\% (véase el Anexo~\ref{app:potencia}).
+tras \(300\) remuestreos de incertidumbre por bloques \parencite{politis1992}. Variando el largo de la serie, el grado de memoria, la fuerza de las señales y la presencia de choques fuertes (\(20\) simulaciones por escenario), se midió cuándo logra ganar QRC y cuánta diferencia real en precisión se necesita en el Perú para detectarla con seguridad (Anexo~\ref{app:potencia}).
 
-\subsubsection{Evaluación económica condicionada}
+\subsubsection{Regla de parada para el análisis económico}
 
-La evaluación económica basada en una función cuadrática sencilla de política monetaria:
+La valoración económica mediante una regla cuadrática sencilla de costo por errores macroeconómicos:
 \begin{equation}
 	L_t=(\pi_t-\pi^\star)^2+\lambda_y \widehat{gap}_t^2,
 	\label{eq:loss}
 \end{equation}
-no formó parte de la hipótesis principal y quedó condicionada de antemano a que el modelo cuántico mostrara una mejora predictiva clara, estable y estadísticamente significativa frente a los controles clásicos comparables. Al no cumplirse esa condición previa, dicho ejercicio económico no se ejecutó.
+se programó bajo una regla estricta: solo se calcularía si QRC vencía de forma clara y robusta a los modelos clásicos equivalentes. Como esa ventaja no apareció, el análisis económico no se ejecutó para evitar inventar beneficios irreales.
 
-\subsubsection{Inferencia estadística y comparación entre modelos}
+\subsubsection{Cómo se midió y comparó el error de los pronósticos}
 
-Las métricas principales de evaluación fuera de muestra fueron la raíz del error cuadrático medio (RMSE) y el error absoluto medio (MAE):
+Para medir qué tan cerca estuvieron los pronósticos de las revisiones reales se usaron principalmente la raíz del error cuadrático medio (RMSE, que castiga más los errores grandes) y el error absoluto medio (MAE, el error promedio en puntos porcentuales):
 \[
 \RMSE=\sqrt{\frac{1}{T_o}\sum_{t=1}^{T_o}e_t^2},
 \qquad
 \MAE=\frac{1}{T_o}\sum_{t=1}^{T_o}|e_t|,
 \]
-complementadas con sesgo medio, coeficiente predictivo fuera de muestra (\(R^2_{\text{OOS}}\)) y análisis por subperíodos. Se descartó el error porcentual MAPE por su inestabilidad cuando las revisiones toman valor nulo. Las diferencias entre pronósticos se contrastaron con la prueba de \textcite{diebold1995} corregida para muestra pequeña \parencite{harvey1997}, la prueba de \textcite{clark2007} para modelos anidados e intervalos bootstrap por bloques de \textcite{politis1992} (\(L=12\), \(B=2000\)). Para evitar falsos positivos al comparar múltiples modelos, se aplicaron las correcciones de \textcite{holm1979} y \textcite{benjamini1995}, junto con el conjunto de confianza de modelos de \textcite{hansen2011}.
+junto con el sesgo promedio y el porcentaje de mejora respecto a una referencia (\(R^2_{\text{OOS}}\)). Se evitó usar errores en porcentaje (MAPE) porque se indeterminan cuando una revisión real vale cero.
 
-\subsection{Control de sesgos y validez}
+\subsection{Reglas para evitar resultados engañosos}
 
-Se aplicaron siete salvaguardas metodológicas durante toda la investigación:
+Durante toda la investigación se cuidaron siete principios básicos:
 \begin{enumerate}
-	\item \textbf{Filtración futura:} cada predictor, estandarización y ventana interna respetó estrictamente la fecha disponible de cada publicación.
-	\item \textbf{Sesgo de selección:} el modelo cuántico confirmatorio, el horizonte de evaluación y los referentes clásicos se definieron antes de abrir el tramo final.
-	\item \textbf{Sobreajuste:} se acotó la dimensión de las lecturas y se utilizó validación temporal interna.
-	\item \textbf{Comparación desigual:} los reservorios y transformaciones de control compartieron idéntica dimensión de salida y presupuestos equivalentes de búsqueda.
-	\item \textbf{Dependencia temporal:} la inferencia empleó errores estándar robustos a autocorrelación y remuestreo por bloques.
-	\item \textbf{Cambios metodológicos:} los cruces por cambio de año base fueron separados de las revisiones ordinarias.
-	\item \textbf{Reproducibilidad:} se conservaron sin modificación los archivos fuente, junto con el código de cálculo, semillas aleatorias y registros de verificación.
+	\item \textbf{Cero información futura:} ninguna variable ni ajuste usó datos no publicados en la fecha evaluada.
+	\item \textbf{Sin elegir después de ver:} el modelo cuántico y sus competidores se definieron antes de abrir los últimos \(60\) meses.
+	\item \textbf{Control del sobreajuste:} se limitaron las lecturas a veinte señales y todo parámetro se ajustó dentro del pasado.
+	\item \textbf{Comparación justa:} los controles clásicos tuvieron exactamente el mismo tamaño de lectura que QRC.
+	\item \textbf{Respeto al orden del tiempo:} las pruebas tomaron en cuenta que meses seguidos comparten información.
+	\item \textbf{Separación de cambios de año base:} se aislaron los empalmes metodológicos de 2000 y 2014.
+	\item \textbf{Reproducibilidad total:} todo el código, semillas, parámetros y bases originales quedaron guardados sin alteración.
 \end{enumerate}
 
-\subsection{Criterios de decisión preespecificados}
+\subsection{Criterios fijados de antemano para decidir}
 
-En lugar de adoptar un umbral arbitrario sin sustento estadístico, la relevancia práctica mínima de referencia para el análisis sintético y de potencia se fijó en \(\delta_{\min}=2{,}0\%\) de reducción relativa en RMSE, evaluada conjuntamente frente a la precisión muestral alcanzable. Las conclusiones sobre la hipótesis comparativa se clasificaron estrictamente en cuatro categorías preespecificadas:
-\begin{itemize}
-	\item \textbf{Evidencia favorable:} mejora de magnitud relevante, intervalo de confianza compatible con superioridad predictiva y significancia confirmatoria tras ajuste por multiplicidad.
-	\item \textbf{Evidencia desfavorable:} ausencia de mejora con precisión suficiente para descartarla o superioridad significativa del competidor clásico.
-	\item \textbf{Resultado inconcluso:} intervalos de confianza amplios que abarcan el empate estadístico sin confirmar ni descartar mejoras pequeñas.
-	\item \textbf{Problema de identificación o datos:} imposibilidad de reconstruir \emph{vintages} o asegurar ausencia de fuga futura.
-\end{itemize}
-En todos los casos, la ausencia de significancia estadística se interpretó con rigor como falta de evidencia suficiente y no como equivalencia automática entre modelos.
+Como umbral mínimo de relevancia práctica se fijó una reducción relativa de al menos \(2{,}0\%\) en el error RMSE. De acuerdo con los resultados conjuntos, las conclusiones se clasificaron en cuatro categorías claras: \textbf{evidencia favorable} (mejora relevante confirmada tras corregir comparaciones múltiples), \textbf{evidencia desfavorable} (sin mejora o superado por un competidor clásico), \textbf{resultado inconcluso} (margen estadístico amplio que incluye el empate) o \textbf{problema de datos} (si fallara la reconstrucción histórica). La falta de diferencia significativa se interpreta con prudencia como falta de evidencia suficiente, no como prueba automática de igualdad exacta.

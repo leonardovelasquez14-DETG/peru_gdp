@@ -4,84 +4,73 @@
 \section{Protocolo de auditoría de datos}
 \label{app:auditoria}
 
-La auditoría produjo los respaldos documentales exigidos por el diseño de investigación: inventario de fuentes, diccionario de variables, matriz histórica de publicaciones, tabla de fechas y retrasos, registro de exclusiones y reporte de cambios metodológicos, todos verificados criptográficamente y manteniendo inalterados los archivos originales del repositorio \parencite{cruz2025}. En concreto, la depuración automatizada realizó las siguientes operaciones:
+La revisión automatizada del archivo histórico \parencite{cruz2025} generó los respaldos exigidos por el diseño de investigación —inventario de fuentes, diccionario de variables, matriz histórica de publicaciones, tabla de retrasos, registro de exclusiones y reporte de cambios metodológicos— manteniendo intactos los archivos originales. En concreto, ejecutó seis pasos:
 \begin{enumerate}
-	\item generó el inventario completo de archivos y el diccionario de variables;
-	\item verificó y eliminó los \(3\,131\) registros repetidos exactos presentes entre 1994 y mediados de 2024 sin pérdida de información;
-	\item reorganizó la base en formato longitudinal verificando la ausencia de fechas objetivo adelantadas respecto de su fecha de difusión e incorporó las marcas de cambio de año base;
-	\item construyó el triángulo histórico del PBI y calculó el retraso mensual de publicación por período;
-	\item obtuvo la muestra objetivo a horizonte fijo \(Y_t^{(H)} = y_t^{(v_H)} - y_t^{(v_0)}\) y la sensibilidad por horizontes;
-	\item documentó las anomalías puntuales anteriores a 2013 y las asimetrías de inicio y cobertura en los sectores de servicios, electricidad y minería.
+	\item construyó el inventario completo de archivos y el diccionario de columnas;
+	\item detectó y retiró las \(3\,131\) filas repetidas exactas acumuladas entre 1994 y mediados de 2024;
+	\item ordenó la base cronológicamente comprobando que ninguna publicación incluyera información futura y marcó los cambios de año base;
+	\item armó la matriz histórica del PBI y midió el rezago mensual de difusión en cada período;
+	\item extrajo la serie limpia a horizonte fijo \(Y_t^{(H)} = y_t^{(v_H)} - y_t^{(v_0)}\) junto con los plazos alternativos de respaldo;
+	\item documentó las anomalías puntuales anteriores a 2013 y las diferencias de cobertura en servicios, electricidad y minería.
 \end{enumerate}
-Asimismo, la inspección confirmó que la evaluación opera en régimen mensual aproximado al tiempo real debido a que los metadatos disponibles registran únicamente el mes y número de nota semanal, y que el indicador real de ruptura metodológica corresponde al cambio de año base en julio de 2000 y marzo de 2014.
+Esta auditoría confirmó que el estudio opera en escala mensual aproximada en tiempo real (los boletines registran mes y número de nota semanal, sin día exacto) y que las rupturas metodológicas reales corresponden a julio de 2000 y marzo de 2014.
 
 \section{Reglas de construcción de la variable objetivo}
 \label{app:objetivo}
 
-Para cada período \(t\), se identificó la primera publicación disponible \(v_0(t)\) con rezago válido (\(\le 3\) meses, excluyendo 1992--1993) y la primera publicación posterior que cumple el horizonte calendario \(H\), denominada \(v_H(t)\). Se calculó \(Y_t^{(H)} = y_t^{(v_H(t))} - y_t^{(v_0(t))}\) según la Ecuación~\ref{eq:target}, separando los \(24\) períodos afectados por los cambios de base de 2000 y 2014.
+Para cada mes \(t\), se ubicó la primera publicación con rezago válido (\(\le 3\) meses, excluyendo 1992--1993) y la publicación situada \(H\) meses después. Se calculó la revisión según la Ecuación~\ref{eq:target} para ocho horizontes (\(H \in \{3, 6, 9, 10, 11, 12, 18, 24\}\)), retirando los \(24\) meses cruzados por los cambios de base de 2000 y 2014.
 
-Una revisión preliminar inicial había calculado la diferencia en sentido inverso (primera cifra menos última) con horizonte variable. Esa convención quedó corregida al implementar explícitamente la Ecuación~\ref{eq:target} para horizontes \(H \in \{3, 6, 9, 10, 11, 12, 18, 24\}\). Como \(H=12\) pierde \(18\) registros internos debido al formato de ventana móvil de las Notas Semanales del BCRP, se adoptó \(H=11\) como horizonte anual continuo principal (\(350\) observaciones limpias sin huecos) y \(H=12, 6, 3\) como contraste de sensibilidad en la Tabla~\ref{tab:descriptivos_revision}.
+Al corregir la resta inicial (que había restado primera publicación menos última en orden inverso y con plazo variable), se unificó el criterio como \emph{cifra corregida menos primera cifra}. Dado que el horizonte de \(12\) meses pierde \(18\) registros internos por el formato móvil de las Notas Semanales del BCRP, se fijó \(H=11\) meses como serie continua principal (\(350\) observaciones limpias sin vacíos), manteniendo \(H=12\), \(6\) y \(3\) meses como verificación en la Tabla~\ref{tab:descriptivos_revision}.
 
 \section{Diseño de validación temporal}
 \label{app:validacion}
 
-En cada uno de los \(250\) orígenes de pronóstico (febrero de 2003 a noviembre de 2024) se construyó una ventana expansiva de entrenamiento integrada exclusivamente por períodos cuyo horizonte de revisión \(H=11\) ya había concluido en la fecha de corte. La selección interna de hiperparámetros, estandarización, imputación y extracción factorial se ejecutó recursivamente mediante validación temporal creciente dentro de cada ventana de entrenamiento, manteniendo intacto hasta el final el bloque congelado terminal de \(60\) observaciones (diciembre de 2019 a noviembre de 2024).
+En cada uno de los \(250\) orígenes evaluados (febrero de 2003 a noviembre de 2024) se entrenaron los modelos exclusivamente con meses pasados cuya revisión a once meses ya había finalizado en esa fecha. Todo ajuste interno de hiperparámetros, escala de variables y factores sectoriales se repitió mes a mes dentro de esa ventana histórica creciente, manteniendo apartados e intactos los últimos \(60\) meses (diciembre de 2019 a noviembre de 2024) hasta la prueba final.
 
-\section{Especificación computacional de QRC}
+\section{Detalles técnicos del reservorio cuántico (QRC)}
 \label{app:qrc}
 
-La implementación confirmatoria de QRC quedó documentada con los siguientes parámetros reproducibles:
+La implementación confirmatoria del reservorio cuántico quedó registrada con parámetros reproducibles:
 \begin{enumerate}
-	\item \textbf{Backend de simulación:} simulador exacto por matriz densidad en Python (\texttt{NumPy}/\texttt{SciPy}) en régimen ideal sin ruido físico de hardware;
-	\item \textbf{Número de qubits y conectividad:} \(N_q=5\) qubits (\(d=32\)) con acoplamientos en cadena;
-	\item \textbf{Codificación de entradas:} ángulos rotacionales escalados dentro de rango acotado sobre las características estandarizadas disponibles en cada origen;
-	\item \textbf{Operadores de evolución y tasa de olvido:} dinámica fija bajo hamiltoniano transversal de Ising desordenado con canal de desvanecimiento de memoria;
-	\item \textbf{Observables medidos:} \(m=20\) valores esperados de Pauli (\(\langle Z_i\rangle, \langle X_i\rangle\) y correlaciones de dos cuerpos \(\langle Z_i Z_j\rangle\));
-	\item \textbf{Número de shots:} evaluación analítica exacta en el límite de infinitos \emph{shots};
-	\item \textbf{Capa de lectura:} regresión regularizada Ridge con parámetro \(\lambda\) seleccionado por validación temporal interna;
-	\item \textbf{Semillas y entorno:} cinco semillas aleatorias independientes (\(\{101, 202, 303, 404, 505\}\)) bajo \texttt{Python 3.14.8}, \texttt{NumPy 2.5.4} y \texttt{SciPy 1.18.1};
-	\item \textbf{Verificación física y causal:} error máximo de unitariedad \(\le 3{,}13\times 10^{-15}\), conservación de traza \(\le 4{,}46\times 10^{-16}\), cero violaciones de cotas de Pauli y discrepancia nula ante perturbación de datos futuros.
+	\item \textbf{Simulador:} cálculo exacto mediante matriz de densidad en Python (\texttt{NumPy}/\texttt{SciPy}), en condición ideal sin ruido físico de hardware;
+	\item \textbf{Tamaño del circuito:} \(N_q=5\) qubits (\(d=32\) estados internos) conectados en cadena;
+	\item \textbf{Ingreso de datos:} ángulos rotacionales acotados sobre las variables estandarizadas disponibles en cada mes;
+	\item \textbf{Dinámica fija:} evolución bajo modelo de Ising transversal desordenado con olvido gradual de memoria;
+	\item \textbf{Lecturas extraídas:} \(m=20\) mediciones esperadas de Pauli (individuales \(\langle Z_i\rangle, \langle X_i\rangle\) y pares \(\langle Z_i Z_j\rangle\)) en evaluación analítica exacta;
+	\item \textbf{Capa entrenable final:} regresión regularizada Ridge ajustada únicamente dentro de cada historial pasado;
+	\item \textbf{Entorno y semillas:} cinco semillas independientes (\(\{101, 202, 303, 404, 505\}\)) bajo \texttt{Python 3.14.8}, \texttt{NumPy 2.5.4} y \texttt{SciPy 1.18.1};
+	\item \textbf{Controles numéricos:} error de unitariedad \(\le 3{,}13\times 10^{-15}\), conservación de traza \(\le 4{,}46\times 10^{-16}\) y variación nula al perturbar datos futuros.
 \end{enumerate}
-La complejidad del circuito se mantuvo acotada a cinco qubits conforme al tamaño muestral efectivo disponible (\(n=250\)) y al presupuesto computacional comparable.
 
-\section{Control clásico de reservorio}
+\section{Controles clásicos equivalentes}
 \label{app:esn}
 
-El control clásico principal consistió en una red de estado eco (ESN) de \(20\) neuronas con matriz recurrente dispersa de radio espectral controlado, matriz de entrada acotada, tasa de fuga fija y lectura Ridge con idéntica dimensión que QRC (\(m=20\)). Adicionalmente se evaluaron una ESN ampliada de \(64\) neuronas y un mapeo estático mediante características aleatorias de Fourier (RFF, \(m=20\)), replicados sobre exactamente las mismas cinco semillas y la misma validación temporal interna que QRC, interpretándose como controles clásicos comparables y no como prueba formal de equivalencia matemática.
+El control clásico principal fue una red de estado eco (ESN) de \(20\) neuronas con dinámica interna fija, escala acotada y regresión Ridge sobre exactamente veinte salidas (\(m=20\)). También se probaron una ESN más grande de \(64\) neuronas y un mapeo estático con veinte ondas aleatorias de Fourier (RFF), usando las mismas cinco semillas y la misma regla temporal que QRC como referentes clásicos de complejidad comparable.
 
-\section{Experimento sintético y propagación de incertidumbre}
+\section{Simulaciones calibradas y propagación de incertidumbre}
 \label{app:sintetico}
 
-Los parámetros del proceso generador de la Ecuación~\ref{eq:dgp} se calibraron sobre \(n=314\) observaciones empíricas mediante \(300\) réplicas de bootstrap circular por bloques (\(L=12\)) para preservar autocorrelación y heterocedasticidad. Para cada uno de los \(12\) escenarios preespecificados se generaron \(20\) réplicas Monte Carlo independientes (\(N_{\text{OOS}}=80\) evaluaciones causales por réplica), propagando los vectores paramétricos extraídos del bootstrap y reportando incertidumbre Monte Carlo. Ningún escenario fue seleccionado tras observar resultados reales y la evidencia sintética se interpretó estrictamente de forma condicional al proceso generador simulado.
+Los parámetros de la Ecuación~\ref{eq:dgp} se calibraron sobre \(n=314\) observaciones reales mediante \(300\) remuestreos por bloques temporales (\(L=12\)) \parencite{politis1992}, preservando la conexión entre meses cercanos. Luego se simularon los \(12\) escenarios previstos con \(20\) repeticiones independientes cada uno (\(N_{\text{OOS}}=80\) pronósticos causales por repetición), sin elegir escenarios después de ver los resultados reales.
 
-\section{Inferencia predictiva}
+\section{Pruebas de comparación estadística}
 \label{app:inferencia}
 
-La diferencia de pérdidas entre pares de modelos se definió como \(d_t=L(e_{A,t})-L(e_{B,t})\) bajo pérdida cuadrática y absoluta. Se aplicó la prueba de \textcite{diebold1995} con corrección de muestra pequeña \parencite{harvey1997}, la prueba de \textcite{clark2007} en modelos anidados, intervalos de confianza por bootstrap circular por bloques \parencite{politis1992} (\(L=12, B=2000\)), ajuste por comparaciones múltiples de \textcite{holm1979} y \textcite{benjamini1995} sobre la familia confirmatoria preespecificada de siete comparadores, y el conjunto de confianza de modelos de \textcite{hansen2011} para los niveles del 90\% y 75\%.
+La diferencia de errores entre cada pareja de modelos se midió bajo pérdida cuadrática y absoluta. Se aplicaron la prueba de \textcite{diebold1995} corregida para muestras moderadas \parencite{harvey1997}, la prueba anidada de \textcite{clark2007}, intervalos bootstrap por bloques de \textcite{politis1992} (\(L=12, B=2000\)), ajustes por comparaciones múltiples de \textcite{holm1979} y \textcite{benjamini1995} sobre los siete comparadores principales de QRC, y el conjunto de confianza de modelos de \textcite{hansen2011} al 90\% y 75\%.
 
 \section{Análisis de potencia}
 \label{app:potencia}
 
-El análisis de potencia se ejecutó mediante simulación por bootstrap de bloques calibrada con la varianza y estructura temporal observada de las diferencias de pérdida en \(n=250\) y \(n=190\). Los efectos mínimos detectables al 80\% de potencia (\(\alpha=0{,}05\) bilateral) superaron en todos los contrastes el umbral práctico del 2\% (\(5{,}7\%\) frente a RFF, \(7{,}6\%\) frente a la corrección media, \(11{,}1\%\) frente a ESN y \(36{,}1\%\) frente a Ridge), documentando la baja potencia disponible para detectar ganancias pequeñas sin inflar artificialmente el tamaño muestral.
+Mediante simulación por bloques calibrada con la variabilidad real observada en \(n=250\) y \(n=190\) orígenes, se estimó la mejora mínima detectable al 80\% de seguridad (\(\alpha=0{,}05\) bilateral). En todos los casos superó ampliamente el umbral de \(2\%\): \(5{,}7\%\) frente a RFF, \(7{,}6\%\) frente al promedio histórico, \(11{,}1\%\) frente a ESN y \(36{,}1\%\) frente a Ridge, demostrando por qué la muestra disponible no alcanza para confirmar ventajas muy pequeñas.
 
-\section{Evaluación económica exploratoria}
+\section{Regla de parada para la valoración económica}
 \label{app:voi}
 
-Conforme a la regla de paro preespecificada, la simulación contrafactual sobre la función de pérdida de política monetaria (Ecuación~\ref{eq:loss}) quedó condicionada al hallazgo de superioridad predictiva robusta y replicable de QRC frente al referente lineal Ridge y los reservorios de control. La verificación automatizada de los cuatro requisitos previos arrojó resultado negativo, por lo cual no se ejecutó monetización ni valoración económica atribuible a QRC.
+Según el protocolo inicial, la simulación económica sobre la Ecuación~\ref{eq:loss} solo se activaría si QRC lograba superar con claridad y consistencia tanto a Ridge como a los controles clásicos comparables. Al verificarse automáticamente que esos requisitos previos no se cumplieron, no se ejecutaron cálculos económicos hipotéticos.
 
 \section{Plan de reproducibilidad}
 \label{app:repro}
 
-El proyecto conserva de forma verificable:
-\begin{itemize}
-	\item archivos originales y metadatos históricos;
-	\item códigos de auditoría, caracterización, estimación, simulación e inferencia;
-	\item configuraciones, hiperparámetros y rangos de búsqueda de cada modelo;
-	\item semillas aleatorias y versiones de software;
-	\item índices temporales de cada partición expansiva y bloque congelado;
-	\item pronósticos fuera de muestra, métricas consolidadas y bitácora de decisiones.
-\end{itemize}
-La publicación de datos derivados respeta las licencias y condiciones de uso de las fuentes originales. Todas las salidas analíticas generadas en el proyecto (\(52\) archivos entre tablas de datos, resúmenes y figuras) cuentan con sumas de verificación SHA-256 comprobadas sin discrepancias bajo un mismo entorno reproducible de Python científico.
+El proyecto conserva intactos y ordenados: archivos originales y metadatos; códigos completos de limpieza, modelado, simulación y pruebas estadísticas; configuraciones de cada modelo; semillas aleatorias y versiones de librerías; cortes temporales de entrenamiento y prueba; y todos los pronósticos generados. Los \(52\) archivos finales generados entre tablas, resúmenes y gráficos superaron sin error la verificación criptográfica SHA-256.
 
 \clearpage
 \section{Cronograma referencial}
@@ -96,12 +85,12 @@ La publicación de datos derivados respeta las licencias y condiciones de uso de
 		\toprule
 		Actividad & Mes 1 & Mes 2 & Mes 3 & Mes 4\\
 		\midrule
-		Auditoría de fuentes y vintages & X & & &\\
-		Caracterización econométrica & X & X & &\\
-		Benchmarks clásicos & & X & X &\\
+		Auditoría de fuentes y publicaciones históricas & X & & &\\
+		Análisis estadístico de revisiones & X & X & &\\
+		Modelos clásicos de referencia & & X & X &\\
 		Implementación y control QRC/ESN & & X & X &\\
-		Experimento sintético & & & X &\\
-		Inferencia, robustez y discusión & & & X & X\\
+		Escenarios simulados & & & X &\\
+		Pruebas conjuntas y discusión & & & X & X\\
 		Redacción final y reproducibilidad & & & & X\\
 		\bottomrule
 	\end{tabular}
@@ -114,14 +103,14 @@ La publicación de datos derivados respeta las licencias y condiciones de uso de
 \begin{enumerate}
 	\item ¿Se verificó la identidad, versión y licencia de la base?
 	\item ¿Se identificaron las fechas reales de publicación?
-	\item ¿Se reconstruyó qué información estaba disponible en cada origen?
-	\item ¿Se definió el horizonte objetivo antes de estimar?
-	\item ¿Se separaron revisiones ordinarias y cambios metodológicos?
-	\item ¿Se fijó el benchmark clásico principal?
-	\item ¿Se congeló el tramo final de evaluación?
-	\item ¿Se documentó el presupuesto de selección de parámetros para todos los modelos?
-	\item ¿Se verificó que ninguna transformación utilizó información futura?
-	\item ¿Se registraron las semillas, versiones y costos computacionales?
+	\item ¿Se reconstruyó qué información estaba disponible en cada fecha?
+	\item ¿Se fijó el horizonte objetivo antes de entrenar modelos?
+	\item ¿Se separaron revisiones ordinarias y cambios de año base?
+	\item ¿Se eligió por adelantado el referente clásico principal?
+	\item ¿Se apartó sin tocar el bloque final de evaluación?
+	\item ¿Se documentó la búsqueda de parámetros de todos los modelos?
+	\item ¿Se comprobó que ninguna variable usó datos del futuro?
+	\item ¿Se guardaron semillas, versiones y tiempos de cómputo?
 \end{enumerate}
 
-\medskip\noindent\textbf{Estado de cumplimiento tras completar la investigación:} los diez controles quedaron verificados y respaldados antes de emitir las conclusiones: identidad, licencia y fechas en la auditoría inicial (ítems 1--3); horizonte continuo \(H=11\) y aislamiento de cambios de año base (ítems 4--5); fijación previa del referente Ridge y congelamiento estricto del tramo 2019m12--2024m11 (ítems 6--7); trazabilidad del ajuste interno de hiperparámetros y prueba nula de cero filtración futura (ítems 8--9); y registro de cinco semillas (\(\{101,202,303,404,505\}\)), versiones y tiempos de cálculo en los manifiestos de reproducibilidad (ítem 10).
+\medskip\noindent\textbf{Estado final de cumplimiento:} los diez controles quedaron verificados antes de emitir las conclusiones: auditoría de base y fechas (ítems 1--3); serie continua a once meses sin cambios de base (ítems 4--5); fijación previa de Ridge y bloqueo estricto de los últimos sesenta meses hasta la prueba final (ítems 6--7); ajuste interno sin filtración futura (ítems 8--9); y registro de semillas (\(\{101,202,303,404,505\}\)), versiones y sumas SHA-256 (ítem 10).
